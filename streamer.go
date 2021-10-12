@@ -42,11 +42,11 @@ const (
 	// will collect prior to writing it to BQ. Used in case the property is 0 (e.g. when undefined).
 	DefaultWorkerBatchSize = 250
 
-	/// DefaultMaxBatchDelay defines the max amount of time a worker batches rows, prior to writing the batched rows,
+	// DefaultMaxBatchDelay defines the max amount of time a worker batches rows, prior to writing the batched rows,
 	// even when not yet full. Used in case the property is 0 (e.g. when undefined).
 	DefaultMaxBatchDelay = 5 * time.Second
 
-	// DefaultWorkerJobQueueSize defines the default size of the job queue per worker used
+	// DefaultWorkerQueueSize defines the default size of the job queue per worker used
 	// in order to allow the Streamer's users to write rows even if all workers are currently
 	// too busy to accept new incoming rows. Used in case the property is 0 (e.g. when undefined).
 	DefaultWorkerQueueSize = 16
@@ -76,7 +76,7 @@ type Streamer struct {
 	maxRetries uint64
 }
 
-// StreamearConfig defines the optional configurations
+// StreamerConfig defines the optional configurations
 // used to create a new (BQ) streamer.
 type StreamerConfig struct {
 	// WorkerCount defines the amount of workers to be used,
