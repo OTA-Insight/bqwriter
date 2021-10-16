@@ -21,28 +21,20 @@ import (
 	"sort"
 	"testing"
 	"time"
-
-	"google.golang.org/api/googleapi"
 )
-
-func assertSignal(t *testing.T, signalCh <-chan struct{}) {
-	select {
-	case <-signalCh:
-	case <-time.After(time.Millisecond * 500):
-		t.Errorf("signal channel timed out after 500ms")
-	}
-}
 
 // stubBQClient is an in-memory stub client for the bqClient interface,
 // allowing us to see what data is written into it
 type stubBQClient struct {
-	rows       []interface{}
-	nextErrors []error
-	putSignal  chan<- struct{}
+	rows         []interface{}
+	flushCount   int
+	flushNextPut bool
+	nextErrors   []error
+	putSignal    chan<- struct{}
 }
 
 // Put implements bqClient::Put
-func (sbqc *stubBQClient) Put(data interface{}) error {
+func (sbqc *stubBQClient) Put(data interface{}) (bool, error) {
 	defer func() {
 		if sbqc.putSignal != nil {
 			sbqc.putSignal <- struct{}{}
@@ -51,18 +43,37 @@ func (sbqc *stubBQClient) Put(data interface{}) error {
 	if len(sbqc.nextErrors) > 0 {
 		err := sbqc.nextErrors[0]
 		sbqc.nextErrors = sbqc.nextErrors[1:]
-		return err
+		return false, err
 	}
 	if rows, ok := data.([]interface{}); ok {
 		sbqc.rows = append(sbqc.rows, rows...)
 	} else {
 		sbqc.rows = append(sbqc.rows, data)
 	}
+	if sbqc.flushNextPut {
+		sbqc.flushNextPut = false
+		return true, sbqc.Flush()
+	}
+	return false, nil
+}
+
+func (sbqc *stubBQClient) Flush() error {
+	if len(sbqc.nextErrors) > 0 {
+		err := sbqc.nextErrors[0]
+		sbqc.nextErrors = sbqc.nextErrors[1:]
+		return err
+	}
+	sbqc.flushCount += 1
 	return nil
 }
 
 // Close implements bqClient::Close
 func (sbqc *stubBQClient) Close() error {
+	if len(sbqc.nextErrors) > 0 {
+		err := sbqc.nextErrors[0]
+		sbqc.nextErrors = sbqc.nextErrors[1:]
+		return err
+	}
 	return nil
 }
 
@@ -70,8 +81,16 @@ func (sbqc *stubBQClient) AddNextError(err error) {
 	sbqc.nextErrors = append(sbqc.nextErrors, err)
 }
 
+func (sbqc *stubBQClient) FlushNextPut() {
+	sbqc.flushNextPut = true
+}
+
 func (sbqc *stubBQClient) SubscribeToPutSignal(ch chan<- struct{}) {
 	sbqc.putSignal = ch
+}
+
+func (sbqc *stubBQClient) AssertFlushCount(t *testing.T, expected int) {
+	assertEqual(t, sbqc.flushCount, expected)
 }
 
 func (sbqc *stubBQClient) AssertStringSlice(t *testing.T, expected []string) {
@@ -113,201 +132,66 @@ func (sbqc *stubBQClient) AssertAnyStringSlice(t *testing.T, expectedSlice ...[]
 
 type testStreamerConfig struct {
 	WorkerCount     int
-	MaxRetries      uint64
-	BatchSize       int
 	MaxBatchDelay   time.Duration
 	WorkerQueueSize int
 }
 
 func newTestStreamer(ctx context.Context, t *testing.T, cfg testStreamerConfig) (*stubBQClient, *Streamer) {
 	client := new(stubBQClient)
-	streamer, err := newStreamerWithClient(ctx, client, cfg.WorkerCount, cfg.MaxRetries, cfg.BatchSize, cfg.MaxBatchDelay, cfg.WorkerQueueSize, nil)
-	if err != nil {
-		t.Fatalf("streamer client creation didn't succeed: %v", err)
+	// always use same client for our purposes
+	clientBuilder := func(context.Context) (bqClient, error) {
+		return client, nil
 	}
+	streamer, err := newStreamerWithClientBuilder(
+		ctx, clientBuilder,
+		cfg.WorkerCount, cfg.WorkerQueueSize,
+		cfg.MaxBatchDelay, nil,
+	)
+	assertNoErrorFatal(t, err)
 	return client, streamer
-}
-
-func TestNewStreamerInputErrors(t *testing.T) {
-	testCases := []struct {
-		ProjectID string
-		DataSetID string
-		TableID   string
-	}{
-		{"", "", ""},
-		{"a", "", ""},
-		{"", "a", ""},
-		{"", "", "a"},
-		{"a", "b", ""},
-		{"a", "", "b"},
-		{"", "a", "b"},
-		{"", "a", "b"},
-	}
-	for testCaseIndex, testCase := range testCases {
-		streamer, err := NewStreamer(
-			context.Background(),
-			testCase.ProjectID, testCase.DataSetID, testCase.TableID,
-			StreamerConfig{},
-		)
-		if err == nil {
-			t.Errorf("testCase #%d: expected an error to be returned, non was received", testCaseIndex)
-		}
-		if streamer != nil {
-			t.Errorf("testCase #%d: expected streamer client to be nil, received one", testCaseIndex)
-			streamer.Close()
-		}
-	}
 }
 
 func TestStreamerFlowStandard(t *testing.T) {
 	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
-	streamer.Write("hello")
-	streamer.Write("world")
-	time.Sleep(time.Millisecond * 500)
-	client.AssertStringSlice(t, []string{})
-	streamer.Close()
-	client.AssertStringSlice(t, []string{"hello", "world"})
-}
-
-func TestStreamerRetryFailurePermanent(t *testing.T) {
-	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{
-		MaxRetries: 2,
-	})
-
-	client.AddNextError(errors.New("some kind of permanent error"))
-	streamer.Write("hello")
-	time.Sleep(time.Millisecond * 500)
-	client.AssertStringSlice(t, []string{})
-
-	streamer.Close()
-	// still empty as there was a failure (cannot retry permanent error)
-	client.AssertStringSlice(t, []string{})
-}
-
-func TestStreamerRetryFailurePermanentGoogleAPI(t *testing.T) {
-	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{
-		MaxRetries: 2,
-	})
-
-	client.AddNextError(&googleapi.Error{Code: 404})
-	streamer.Write("hello")
-	time.Sleep(time.Millisecond * 500)
-	client.AssertStringSlice(t, []string{})
-
-	streamer.Close()
-	// still empty as there was a failure (cannot retry permanent error)
-	client.AssertStringSlice(t, []string{})
-}
-
-func TestStreamerRetryFailureExhaust(t *testing.T) {
-	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{
-		MaxRetries: 1,
-	})
-
-	client.AddNextError(&googleapi.Error{
-		Code: 500,
-	})
-	client.AddNextError(&googleapi.Error{
-		Code: 503,
-	})
-	streamer.Write("hello")
-	time.Sleep(time.Millisecond * 500)
-	client.AssertStringSlice(t, []string{})
-
-	streamer.Close()
-	// still empty as there was a failure too much
-	client.AssertStringSlice(t, []string{})
-}
-
-func TestStreamerRetrySuccess(t *testing.T) {
-	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{
-		MaxRetries: 2,
-	})
-
-	client.AddNextError(&googleapi.Error{
-		Code: 500,
-	})
-	client.AddNextError(&googleapi.Error{
-		Code: 503,
-	})
-	streamer.Write("hello")
-	time.Sleep(time.Millisecond * 500)
-	client.AssertStringSlice(t, []string{})
-
-	streamer.Close()
-	// after 2 retries it should have worked
-	client.AssertStringSlice(t, []string{"hello"})
-}
-
-func TestStreamerBatchExhaustSingleWorker(t *testing.T) {
-	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{
-		WorkerCount: 1,
-		BatchSize:   2,
-	})
+	defer streamer.Close()
 	putSignalCh := make(chan struct{}, 1)
 	client.SubscribeToPutSignal(putSignalCh)
 
-	streamer.Write("hello")
-	time.Sleep(time.Millisecond * 500)
-	client.AssertStringSlice(t, []string{})
+	assertNoError(t, streamer.Write("hello"))
+	assertNoError(t, streamer.Write("world"))
+	<-putSignalCh
+	<-putSignalCh
 
-	streamer.Write("world")
-	assertSignal(t, putSignalCh)
+	// our stub BQ client doesn't batch, so it immediately has the data
 	client.AssertStringSlice(t, []string{"hello", "world"})
-
-	streamer.Write("!")
-	time.Sleep(time.Millisecond * 500)
-	client.AssertStringSlice(t, []string{"hello", "world"})
-
-	streamer.Close()
-	client.AssertStringSlice(t, []string{"hello", "world", "!"})
 }
 
-func TestStreamerBatchExhaustMultiWorker(t *testing.T) {
-	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{
-		WorkerCount: 2,
-		BatchSize:   2,
-	})
-
-	streamer.Write("hello")
-	time.Sleep(time.Millisecond * 500)
-	client.AssertStringSlice(t, []string{})
-	streamer.Write("world")
-	time.Sleep(time.Millisecond * 500)
-	client.AssertAnyStringSlice(
-		t,
-		[]string{},
-		[]string{"hello", "world"},
-	)
-
-	streamer.Write("!")
-	time.Sleep(time.Millisecond * 500)
-	client.AssertAnyStringSlice(
-		t,
-		[]string{"hello", "world"},
-		[]string{"world", "!"},
-		[]string{"hello", "!"},
-	)
-
+func TestStreamerWriteErrorAlreadyClosed(t *testing.T) {
+	_, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
 	streamer.Close()
-	client.AssertStringSlice(t, []string{"hello", "world", "!"})
+	assertError(t, streamer.Write("hello"))
 }
 
-func TestStreamerBatchExhaustMaxDelaySingleWorker(t *testing.T) {
+func TestStreamerWriteErrorNilData(t *testing.T) {
+	_, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
+	defer streamer.Close()
+	assertError(t, streamer.Write(nil))
+}
+
+func TestStreamerCloseError(t *testing.T) {
+	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
+	client.AddNextError(errors.New("some client close error"))
+	streamer.Close()
+	// this is logged to stderr, so should be okay for user
+}
+
+func TestStreamerFlushCount(t *testing.T) {
 	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{
 		WorkerCount:   1,
-		BatchSize:     100,
-		MaxBatchDelay: time.Millisecond * 100,
+		MaxBatchDelay: 200 * time.Millisecond,
 	})
-
-	streamer.Write("hello")
-	time.Sleep(time.Millisecond * 200)
-	client.AssertStringSlice(t, []string{"hello"})
-	streamer.Write("world")
-	time.Sleep(time.Millisecond * 200)
-	client.AssertStringSlice(t, []string{"hello", "world"})
-
-	streamer.Write("!")
+	time.Sleep(250 * time.Millisecond)
+	client.AssertFlushCount(t, 1)
 	streamer.Close()
-	client.AssertStringSlice(t, []string{"hello", "world", "!"})
+	client.AssertFlushCount(t, 2)
 }

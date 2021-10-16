@@ -8,7 +8,23 @@ on:
 
 jobs:
 
-  build:
+  build-go-ver-min:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.13
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v ./...
+
+  build-go-ver-max:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
