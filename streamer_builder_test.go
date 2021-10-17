@@ -118,10 +118,10 @@ func TestStreamerBuilderClientInsertAll(t *testing.T) {
 
 type testLogger struct{}
 
-func (_ testLogger) Debug(args ...interface{})                   {}
-func (_ testLogger) Debugf(template string, args ...interface{}) {}
-func (_ testLogger) Error(args ...interface{})                   {}
-func (_ testLogger) Errorf(template string, args ...interface{}) {}
+func (_ testLogger) Debug(_args ...interface{})                    {}
+func (_ testLogger) Debugf(_template string, _args ...interface{}) {}
+func (_ testLogger) Error(_args ...interface{})                    {}
+func (_ testLogger) Errorf(_template string, _args ...interface{}) {}
 
 func TestStreamerBuilderLogger(t *testing.T) {
 	builder := newTestStreamerBuilder(t)
