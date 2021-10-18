@@ -34,6 +34,16 @@ We currently support Go versions 1.13 and newer.
 
 ## Examples
 
+In this section you'll find some quick examples to help you get started
+together with the official documentation which you can find at <https://pkg.go.dev/github.com/OTA-Insight/bqwriter>.
+
+The `Streamer` client is safe for concurrent use and can be used from as many go routines as you wish.
+No external locking or other concurrency-safe mechanism is required from your side. To keep these examples
+as small as possible however they are written in a linear synchronous fashion, but it is encouraged to use the
+`Streamer` client from multiple go routines, in order to be able to write rows at a sufficiently high throughput.
+
+Please also note that errors are not handled gracefully in these examples as ot keep them small and narrow in scope.
+
 ### Basic InsertAll Streamer
 
 ```go
