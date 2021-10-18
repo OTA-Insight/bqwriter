@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"cloud.google.com/go/bigquery"
 )
@@ -34,11 +33,6 @@ type bqInsertAllThickClient struct {
 
 	rows      []interface{}
 	batchSize int
-
-	maxRetries             int
-	initialRetryDelay      time.Duration
-	maxRetryDeadlineOffset time.Duration
-	retryDelayMultiplier   float64
 }
 
 // bqInsertAllClient defines the API we expect from the BQ InsertAll client,
@@ -99,7 +93,7 @@ func newStdBQInsertAllClient(projectID, dataSetID, tableID string, skipInvalidRo
 }
 
 // newStdBQInsertAllThickClient creates a new bqInsertAllThickClient.
-func newStdBQInsertAllThickClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool, batchSize int, retryCfg *WriteRetryConfig, logger Logger) (*bqInsertAllThickClient, error) {
+func newStdBQInsertAllThickClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool, batchSize int, logger Logger) (*bqInsertAllThickClient, error) {
 	if projectID == "" {
 		return nil, errors.New("NewStreamer: projectID is empty: should be defined")
 	}
@@ -113,10 +107,10 @@ func newStdBQInsertAllThickClient(projectID, dataSetID, tableID string, skipInva
 	if err != nil {
 		return nil, err
 	}
-	return newBQInsertAllThickClient(client, batchSize, retryCfg, logger)
+	return newBQInsertAllThickClient(client, batchSize, logger)
 }
 
-func newBQInsertAllThickClient(client bqInsertAllClient, batchSize int, retryCfg *WriteRetryConfig, logger Logger) (*bqInsertAllThickClient, error) {
+func newBQInsertAllThickClient(client bqInsertAllClient, batchSize int, logger Logger) (*bqInsertAllThickClient, error) {
 	if client == nil {
 		return nil, errors.New("BQ Insert All Client expected")
 	}
@@ -133,11 +127,6 @@ func newBQInsertAllThickClient(client bqInsertAllClient, batchSize int, retryCfg
 
 		rows:      make([]interface{}, 0, batchSize),
 		batchSize: batchSize,
-
-		maxRetries:             retryCfg.getSanitizedMaxRetries(),
-		initialRetryDelay:      retryCfg.getSanitizedInitialRetryDelay(),
-		maxRetryDeadlineOffset: retryCfg.getSanitizedMaxRetryDeadlineOffset(),
-		retryDelayMultiplier:   retryCfg.getSanitizedRetryDelayMultiplier(),
 	}, nil
 }
 
@@ -172,22 +161,9 @@ func (bqc *bqInsertAllThickClient) Flush() (err error) {
 		// such that we can start inserting new rows
 		bqc.rows = bqc.rows[:0]
 	}()
-	if bqc.maxRetries <= 0 {
-		// no retries are desired, so simply put the rows once and hope for the best
-		return bqc.putRows(context.Background()) // background ctx is used, as we always want to flush unwritten rows, even if parent ctx is done
-	}
-	// retry flush operation using a back off exponential algorithm,
-	// both limited in retry attempts as well as total duration
-	retryer := newBQInsertAllRetryer(
-		context.Background(), // background ctx is used, as we always want to flush unwritten rows, even if parent ctx is done
-		bqc.maxRetries,
-		bqc.initialRetryDelay,
-		bqc.maxRetryDeadlineOffset,
-		bqc.retryDelayMultiplier,
-		bqRestAPIRetryErrorFilter,
-	)
-	err = retryer.RetryOp(bqc.putRows)
-	return
+	// retry logic is to be implemented by the actual BQ (inserAll) client,
+	// it certainly is the case for the actual one used
+	return bqc.putRows(context.Background()) // background ctx is used, as we always want to flush unwritten rows, even if parent ctx is done
 }
 
 func (bqc *bqInsertAllThickClient) putRows(ctx context.Context) error {

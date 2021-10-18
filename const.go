@@ -28,12 +28,16 @@ const (
 	// DefaultInitialRetryDelay is used as the default for the InitialRetryDuration property
 	// of the StreamerConfig's WriteRetryConfig, used in case the property is 0 (e.g. when undefined),
 	// and only if the WriteRetryConfig is actually defined.
-	DefaultInitialRetryDelay = time.Millisecond * 500
+	//
+	// Default based on suggestions made in https://cloud.google.com/bigquery/sla.
+	DefaultInitialRetryDelay = time.Second * 1
 
 	// DefaultMaxRetryDeadlineOffset is the default max amount of the the streamer will
 	// allow the retry back off logic to retry, as to ensure a goroutine isn't blocked for too long on a faulty write.
 	// Used in case the property is 0 (e.g. when undefined), and only if the WriteRetryConfig is actually defined.
-	DefaultMaxRetryDeadlineOffset = time.Second * 30
+	//
+	// Default based on suggestions made in https://cloud.google.com/bigquery/sla.
+	DefaultMaxRetryDeadlineOffset = time.Second * 32
 
 	// DefaultRetryDelayMultiplier is the default retry delay multipler used by the streamer's
 	// back off algorithm in order to increase the delay in between each sequential write-retry of the

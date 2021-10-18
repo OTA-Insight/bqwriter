@@ -21,13 +21,12 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/api/googleapi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func TestBQInsertAllRetryerRetryOpFlowFailure(t *testing.T) {
-	retryer := newBQInsertAllRetryer(
+func TestBQRetryerRetryOpFlowFailure(t *testing.T) {
+	retryer := newBQRetryer(
 		context.Background(),
 		DefaultMaxRetries,
 		1*time.Millisecond,
@@ -55,8 +54,8 @@ func TestBQInsertAllRetryerRetryOpFlowFailure(t *testing.T) {
 	assertEqual(t, 0, len(errors))
 }
 
-func TestBQInsertAllRetryerRetryOpFlowSuccess(t *testing.T) {
-	retryer := newBQInsertAllRetryer(
+func TestBQRetryerRetryOpFlowSuccess(t *testing.T) {
+	retryer := newBQRetryer(
 		context.Background(),
 		DefaultMaxRetries,
 		1*time.Millisecond,
@@ -82,8 +81,8 @@ func TestBQInsertAllRetryerRetryOpFlowSuccess(t *testing.T) {
 	assertEqual(t, 0, len(errors))
 }
 
-func TestBQInsertAllRetryerNoRetryBecauseOfNilError(t *testing.T) {
-	retryer := newBQInsertAllRetryer(
+func TestBQRetryerNoRetryBecauseOfNilError(t *testing.T) {
+	retryer := newBQRetryer(
 		context.Background(),
 		DefaultMaxRetries,
 		DefaultInitialRetryDelay,
@@ -96,10 +95,10 @@ func TestBQInsertAllRetryerNoRetryBecauseOfNilError(t *testing.T) {
 	assertEqual(t, time.Duration(0), pause)
 }
 
-func TestBQInsertAllRetryerNoRetryBecauseOfCanceledContext(t *testing.T) {
+func TestBQRetryerNoRetryBecauseOfCanceledContext(t *testing.T) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	cancelFunc()
-	retryer := newBQInsertAllRetryer(
+	retryer := newBQRetryer(
 		ctx,
 		DefaultMaxRetries,
 		DefaultInitialRetryDelay,
@@ -112,8 +111,8 @@ func TestBQInsertAllRetryerNoRetryBecauseOfCanceledContext(t *testing.T) {
 	assertEqual(t, time.Duration(0), pause)
 }
 
-func TestBQInsertAllRetryerNoRetryBecauseOfMaxRetries(t *testing.T) {
-	retryer := newBQInsertAllRetryer(
+func TestBQRetryerNoRetryBecauseOfMaxRetries(t *testing.T) {
+	retryer := newBQRetryer(
 		context.Background(),
 		1, // retry max 1 time
 		DefaultInitialRetryDelay,
@@ -135,8 +134,8 @@ func TestBQInsertAllRetryerNoRetryBecauseOfMaxRetries(t *testing.T) {
 	assertEqual(t, time.Duration(0), pause)
 }
 
-func TestBQInsertAllRetryerNoRetryBecauseOfErrorFilter(t *testing.T) {
-	retryer := newBQInsertAllRetryer(
+func TestBQRetryerNoRetryBecauseOfErrorFilter(t *testing.T) {
+	retryer := newBQRetryer(
 		context.Background(),
 		DefaultMaxRetries,
 		DefaultInitialRetryDelay,
@@ -158,27 +157,6 @@ func TestBQInsertAllRetryerNoRetryBecauseOfErrorFilter(t *testing.T) {
 	pause, shouldRetry = retryer.Retry(errors.New("another test error, but please do not stop! :("))
 	assertEqual(t, false, shouldRetry)
 	assertEqual(t, time.Duration(0), pause)
-}
-
-func TestBQRestAPIRetryErrorFilterTrue(t *testing.T) {
-	testCases := []int{
-		500,
-		503,
-	}
-	for _, testCase := range testCases {
-		err := &googleapi.Error{Code: testCase}
-		assertEqual(t, true, bqRestAPIRetryErrorFilter(err))
-	}
-}
-
-func TestBQRestAPIRetryErrorFilterFalse(t *testing.T) {
-	// nil error is not an accepted error
-	assertEqual(t, false, bqRestAPIRetryErrorFilter(nil))
-	// custom error is not an accepted error
-	assertEqual(t, false, bqRestAPIRetryErrorFilter(errors.New("todo")))
-	// correct error, but wrong code
-	err := &googleapi.Error{Code: 404}
-	assertEqual(t, false, bqRestAPIRetryErrorFilter(err))
 }
 
 func TestBQGRPCRetryErrorFilterTrue(t *testing.T) {

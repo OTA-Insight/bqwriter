@@ -16,12 +16,9 @@ package bqwriter
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"sort"
 	"testing"
-
-	"google.golang.org/api/googleapi"
 )
 
 // subBQInsertAllClient is an in-memory stub client for the bqInsertAllClient interface,
@@ -78,8 +75,7 @@ func (sbqc *subBQInsertAllClient) AssertStringSlice(t *testing.T, expected []str
 }
 
 type TestBQInsertAllThickClientConfig struct {
-	BatchSize   int
-	RetryConfig *WriteRetryConfig
+	BatchSize int
 }
 
 func newTestBQInsertAllThickClient(t *testing.T, cfg *TestBQInsertAllThickClientConfig) (*subBQInsertAllClient, *bqInsertAllThickClient) {
@@ -87,7 +83,7 @@ func newTestBQInsertAllThickClient(t *testing.T, cfg *TestBQInsertAllThickClient
 	if cfg == nil {
 		cfg = new(TestBQInsertAllThickClientConfig)
 	}
-	retryClient, err := newBQInsertAllThickClient(client, cfg.BatchSize, cfg.RetryConfig, stdLogger{})
+	retryClient, err := newBQInsertAllThickClient(client, cfg.BatchSize, stdLogger{})
 	assertNoErrorFatal(t, err)
 	return client, retryClient
 }
@@ -96,104 +92,6 @@ func TestBQInsertAllThickClientDefaultBatchSize(t *testing.T) {
 	_, client := newTestBQInsertAllThickClient(t, nil)
 	assertEqual(t, DefaultBatchSize, client.batchSize)
 	client.Close()
-}
-
-func TestBQInsertAllThickClientRetryFailurePermanent(t *testing.T) {
-	stubClient, client := newTestBQInsertAllThickClient(t, &TestBQInsertAllThickClientConfig{
-		BatchSize: 1,
-		RetryConfig: &WriteRetryConfig{
-			MaxRetries: 2,
-		},
-	})
-	defer client.Close()
-
-	stubClient.AddNextError(errors.New("some kind of permanent error"))
-	flushed, err := client.Put("hello")
-	assertError(t, err)
-	assertEqual(t, true, flushed)
-	stubClient.AssertStringSlice(t, []string{})
-
-	// still empty as there was a failure (cannot retry permanent error)
-	stubClient.AssertStringSlice(t, []string{})
-}
-
-func TestBQInsertAllThickClientRetryFailurePermanentGoogleAPI(t *testing.T) {
-	stubClient, client := newTestBQInsertAllThickClient(t, &TestBQInsertAllThickClientConfig{
-		BatchSize: 1,
-		RetryConfig: &WriteRetryConfig{
-			MaxRetries: 2,
-		},
-	})
-	defer client.Close()
-
-	stubClient.AddNextError(&googleapi.Error{Code: 404})
-	flushed, err := client.Put("hello")
-	assertError(t, err)
-	assertEqual(t, true, flushed)
-	stubClient.AssertStringSlice(t, []string{})
-
-	// still empty as there was a failure (cannot retry permanent error)
-	stubClient.AssertStringSlice(t, []string{})
-}
-
-func TestBQInsertAllThickClientRetryFailureExhaust(t *testing.T) {
-	stubClient, client := newTestBQInsertAllThickClient(t, &TestBQInsertAllThickClientConfig{
-		BatchSize: 1,
-		RetryConfig: &WriteRetryConfig{
-			MaxRetries: 1,
-		},
-	})
-	defer client.Close()
-
-	stubClient.AddNextError(&googleapi.Error{
-		Code: 500,
-	})
-	stubClient.AddNextError(&googleapi.Error{
-		Code: 503,
-	})
-	flushed, err := client.Put("hello")
-	assertError(t, err)
-	assertEqual(t, true, flushed)
-	stubClient.AssertStringSlice(t, []string{})
-
-	// still empty as there was a failure too much
-	stubClient.AssertStringSlice(t, []string{})
-}
-
-func TestBQInsertAllThickClientRetrySuccess(t *testing.T) {
-	stubClient, client := newTestBQInsertAllThickClient(t, &TestBQInsertAllThickClientConfig{
-		BatchSize: 1,
-		RetryConfig: &WriteRetryConfig{
-			MaxRetries: 2,
-		},
-	})
-	defer client.Close()
-
-	stubClient.AddNextError(&googleapi.Error{
-		Code: 500,
-	})
-	stubClient.AddNextError(&googleapi.Error{
-		Code: 503,
-	})
-	flushed, err := client.Put("hello")
-	assertNoError(t, err)
-	assertEqual(t, true, flushed)
-	stubClient.AssertStringSlice(t, []string{"hello"})
-}
-
-func TestBQInsertAllThickClientWithoutRetrySuccess(t *testing.T) {
-	stubClient, client := newTestBQInsertAllThickClient(t, &TestBQInsertAllThickClientConfig{
-		BatchSize: 1,
-		RetryConfig: &WriteRetryConfig{
-			MaxRetries: -1,
-		},
-	})
-	defer client.Close()
-
-	flushed, err := client.Put("hello")
-	assertNoError(t, err)
-	assertEqual(t, true, flushed)
-	stubClient.AssertStringSlice(t, []string{"hello"})
 }
 
 func TestBQInsertAllThickClientFlushNop(t *testing.T) {
@@ -230,13 +128,13 @@ func TestBQInsertAllThickClientBatchExhaustBatch(t *testing.T) {
 }
 
 func TestNewBQInsertAllThickClientWithNilClient(t *testing.T) {
-	client, err := newBQInsertAllThickClient(nil, 0, nil, stdLogger{})
+	client, err := newBQInsertAllThickClient(nil, 0, stdLogger{})
 	assertError(t, err)
 	assertNil(t, client)
 }
 
 func TestNewBQInsertAllThickClientWithNilLogger(t *testing.T) {
-	client, err := newBQInsertAllThickClient(new(subBQInsertAllClient), 0, nil, nil)
+	client, err := newBQInsertAllThickClient(new(subBQInsertAllClient), 0, nil)
 	assertError(t, err)
 	assertNil(t, client)
 }
@@ -259,7 +157,7 @@ func TestNewStdBQInsertAllThickClientInputErrors(t *testing.T) {
 	for _, testCase := range testCases {
 		client, err := newStdBQInsertAllThickClient(
 			testCase.ProjectID, testCase.DataSetID, testCase.TableID,
-			false, false, 0, nil,
+			false, false, 0,
 			stdLogger{},
 		)
 		assertError(t, err)

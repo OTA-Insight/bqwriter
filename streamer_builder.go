@@ -119,6 +119,12 @@ func (builder *StreamerBuilder) WorkerQueueSize(n int) *StreamerBuilder {
 // WriteRetryConfig configures the config to be used for the Retry back off logic
 // of the to be built Streamer (client). Passing in a nil value will effectively
 // disable the retry logic.
+//
+// NOTE: this retry config is only used for a Storage API based Streamer Client,
+// and has no affect on the InsertAll based Streamer client. The latter does use more
+// or less the same code in the background. The difference being that for the InsertAll client
+// these Retry configurations cannot be configured and are instead hardcoded to the Default
+// ones as also found in this package.
 func (builder *StreamerBuilder) WriteRetryConfig(cfg *WriteRetryConfig) *StreamerBuilder {
 	builder.retryConfig = cfg
 	return builder
@@ -198,7 +204,6 @@ func (builder *StreamerBuilder) BuildStreamer(ctx context.Context) (*Streamer, e
 			builder.projectID, builder.dataSetID, builder.tableID,
 			builder.clientInsertAllConfig.skipInvalidRows, builder.clientInsertAllConfig.ignoreUnknownValues,
 			builder.batchSize,
-			builder.retryConfig,
 			builder.logger,
 		)
 	}
