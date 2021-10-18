@@ -103,6 +103,17 @@ func (mr *myRow) Save() (row map[string]bigquery.Value, insertID string, err err
 }
 ```
 
+You can also pass in a `struct` directly and the schema will be inferred automatically
+based on its public items. This flexibility has a runtime cost by having to apply reflection.
+
+A raw `struct` can also be stored by using the [`StructSaver`](https://pkg.go.dev/cloud.google.com/go/bigquery#StructSaver) interface,
+in which case you get the benefit of being able to write any kind of `struct` while at the same time being able to pass
+in the to be used scheme already such that it doesn't have to be inferred and giving you exact controls for each field on top of that.
+
+If you have the choice however than we do recommend to implement the `ValueSaver` for your row `struct` as this gives you the best of both worlds,
+while at the same time also giving you the easy built-in ability to define a unique `insertID` per row which will help prevent potential duplicates
+that can otherwise happen while retrying to write rows which have failed temporarily.
+
 ### Custom InsertAll Streamer
 
 Using the same `myRow` structure from previous example,
