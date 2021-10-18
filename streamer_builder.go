@@ -48,6 +48,11 @@ type StreamerBuilder struct {
 	logger Logger
 }
 
+// TODO: add StorageStreamerBuilder,
+// which is created from a StreamerBuilder,
+// in orde to be able to configure more advanced
+// configurations for a Storage API, not required for a insertAll api :)
+
 // bqClientInsertAllConfig is the config used by the StreamerBuilder
 // in order to configure the InsertAll client used by default.
 type bqClientInsertAllConfig struct {
