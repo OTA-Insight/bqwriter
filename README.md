@@ -32,6 +32,119 @@ NOTE: This package is under development, and may occasionally make backwards-inc
 
 We currently support Go versions 1.13 and newer.
 
+## Examples
+
+### Basic InsertAll Streamer
+
+```go
+import "github.com/OTA-Insight/bqwriter"
+
+// create stream builder, used to configure the BQ (stream) writer
+bqWriterBuilder, err := bqwriter.NewStreamerBuilder(
+    "my-gcloud-project",
+    "my-bq-dataset",
+    "my-bq-table",
+)
+if err != nil {
+    // TODO: handle error gracefully
+    panic(err)
+}
+
+// build the BQ (stream) writer client
+ctx := context.Background()  // TODO: use more specific context
+bqWriter, err = bqWriterBuilder.BuildStreamer(ctx)
+if err != nil {
+    // TODO: handle error gracefully
+    panic(err)
+}
+// do not forget to close, to close all background resources opened
+// when creating the BQ (stream) writer client
+defer bqWriter.Close()
+
+// You can now start writing data to your BQ table
+bqWriter.Write(&myRow{Timestamp: time.UTC().Now(), Username: "test"})
+// NOTE: only write one row at a time using `(*Streamer).Write`,
+// multiple rows can be written using one `Write` call per row.
+```
+
+You build a `Streamer` client using the `StreamerBuilder` as you can see in the above example.
+Note that there is a lot you can still configure in the Streamer builder (`bqWriterBuilder`) prior to actually
+building the streamer. Please consult the <https://pkg.go.dev/github.com/OTA-Insight/bqwriter#StreamerBuilder> for more information.
+
+The `myRow` structure used in this example is one way to pass in the information of a single row to the `(*Streamer).Write` method.
+This structure implements the [`ValueSaver`](https://pkg.go.dev/cloud.google.com/go/bigquery#ValueSaver) interface. An example of this:
+
+```go
+import (
+	"cloud.google.com/go/bigquery"
+	"cloud.google.com/go/civil"
+)
+
+type myRow struct {
+	Timestamp time.Time
+	Username  string
+}
+
+func (mr *myRow) Save() (row map[string]bigquery.Value, insertID string, err error) {
+	return map[string]bigquery.Value{
+		"timestamp": civil.DateTimeOf(rr.Timestamp),
+		"username":  mr.Username,
+	}, "", nil
+}
+```
+
+### Custom InsertAll Streamer
+
+Using the same `myRow` structure from previous example,
+here is how we create a `Streamer` client with a more
+custom configuration:
+
+```go
+import "github.com/OTA-Insight/bqwriter"
+
+// create stream builder, used to configure the BQ (stream) writer
+bqWriterBuilder, err := bqwriter.NewStreamerBuilder(
+    "my-gcloud-project",
+    "my-bq-dataset",
+    "my-bq-table",
+)
+if err != nil {
+    // TODO: handle error gracefully
+    panic(err)
+}
+
+// build the BQ (stream) writer client
+ctx := context.Background()  // TODO: use more specific context
+bqWriter, err = bqWriterBuilder.
+    // use 5 background worker threads,
+    WorkerCount(5).
+    // ignore errors for invalid/unknown rows/values,
+    // by default these errors make a write fail
+    ClientInsertAll(true, true).
+    // disable retrying on errors
+    WriteRetryConfig(&bqwriter.WriteRetryConfig{
+        MaxRetries: -1,
+    }).
+    // build the streamer using your custom configuration
+    BuildStreamer(ctx)
+if err != nil {
+    // TODO: handle error gracefully
+    panic(err)
+}
+// do not forget to close, to close all background resources opened
+// when creating the BQ (stream) writer client
+defer bqWriter.Close()
+
+// You can now start writing data to your BQ table
+bqWriter.Write(&myRow{Timestamp: time.UTC().Now(), Username: "test"})
+// NOTE: only write one row at a time using `(*Streamer).Write`,
+// multiple rows can be written using one `Write` call per row.
+```
+
+### Storage Streamer
+
+TODO
+
 ## Authorization
 
 The streamer client will use [Google Application Default Credentials](https://developers.google.com/identity/protocols/application-default-credentials) for authorization credentials used in calling the API endpoints.
