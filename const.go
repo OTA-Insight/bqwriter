@@ -22,19 +22,18 @@ const (
 	DefaultWorkerCount = 2
 
 	// DefaultMaxRetries is used as the default for the MaxRetries property of
-	// the StreamerConfig's WriteRetryConfig, used in case the property is 0 (e.g. when undefined).
+	// the StorageClientConfig, used in case the property is 0 (e.g. when undefined).
 	DefaultMaxRetries = 3
 
 	// DefaultInitialRetryDelay is used as the default for the InitialRetryDuration property
-	// of the StreamerConfig's WriteRetryConfig, used in case the property is 0 (e.g. when undefined),
-	// and only if the WriteRetryConfig is actually defined.
+	// of the SStorageClientConfig, used in case the property is 0 (e.g. when undefined).
 	//
 	// Default based on suggestions made in https://cloud.google.com/bigquery/sla.
 	DefaultInitialRetryDelay = time.Second * 1
 
 	// DefaultMaxRetryDeadlineOffset is the default max amount of the the streamer will
 	// allow the retry back off logic to retry, as to ensure a goroutine isn't blocked for too long on a faulty write.
-	// Used in case the property is 0 (e.g. when undefined), and only if the WriteRetryConfig is actually defined.
+	// Used in case the property is 0 (e.g. when undefined).
 	//
 	// Default based on suggestions made in https://cloud.google.com/bigquery/sla.
 	DefaultMaxRetryDeadlineOffset = time.Second * 32

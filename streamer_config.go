@@ -105,8 +105,7 @@ type (
 		// and that there is also an upper limit of MaxTotalElpasedRetryTime to execute in worst case these max retries.
 		//
 		// Defaults to DefaultMaxRetries if MaxRetries == 0,
-		// or use MaxRetries < 0 if you want to explicitly disable Retrying,
-		// but in that case you might as well not pass in a WriteRetryConfig at all.
+		// or use MaxRetries < 0 if you want to explicitly disable Retrying.
 		MaxRetries int
 
 		// InitialRetryDelay is the initial time the back off algorithm will wait and which will
