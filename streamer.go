@@ -51,15 +51,15 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 		func(ctx context.Context, projectID, dataSetID, tableID string, logger Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
 			if storageCfg != nil {
 				return nil, errors.New("create new streamer: storage client isn't supported yet")
-			} else {
-				return newStdBQInsertAllThickClient(
-					projectID, dataSetID, tableID,
-					!insertAllCfg.FailOnInvalidRows,
-					!insertAllCfg.FailForUnknownValues,
-					insertAllCfg.BatchSize, insertAllCfg.MaxRetryDeadlineOffset,
-					logger,
-				)
 			}
+
+			return newStdBQInsertAllThickClient(
+				projectID, dataSetID, tableID,
+				!insertAllCfg.FailOnInvalidRows,
+				!insertAllCfg.FailForUnknownValues,
+				insertAllCfg.BatchSize, insertAllCfg.MaxRetryDeadlineOffset,
+				logger,
+			)
 		},
 		projectID, dataSetID, tableID,
 		cfg,
