@@ -56,7 +56,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 					projectID, dataSetID, tableID,
 					!insertAllCfg.FailOnInvalidRows,
 					!insertAllCfg.FailForUnknownValues,
-					insertAllCfg.BatchSize,
+					insertAllCfg.BatchSize, insertAllCfg.MaxRetryDeadlineOffset,
 					logger,
 				)
 			}

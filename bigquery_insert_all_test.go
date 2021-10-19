@@ -16,23 +16,33 @@ package bqwriter
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 )
 
 // subBQInsertAllClient is an in-memory stub client for the bqInsertAllClient interface,
 // allowing us to see what data is written into it
 type subBQInsertAllClient struct {
-	rows       []interface{}
-	nextErrors []error
+	rows            []interface{}
+	nextErrors      []error
+	sleepPriorToPut time.Duration
 }
 
 // Put implements bqClient::Put
-func (sbqc *subBQInsertAllClient) Put(_ context.Context, data interface{}) error {
+func (sbqc *subBQInsertAllClient) Put(ctx context.Context, data interface{}) error {
 	if len(sbqc.nextErrors) > 0 {
 		err := sbqc.nextErrors[0]
 		sbqc.nextErrors = sbqc.nextErrors[1:]
+		return err
+	}
+	if sbqc.sleepPriorToPut > 0 {
+		time.Sleep(sbqc.sleepPriorToPut)
+	}
+	err := ctx.Err()
+	if err != nil {
 		return err
 	}
 	if rows, ok := data.([]interface{}); ok {
@@ -57,6 +67,10 @@ func (sbqc *subBQInsertAllClient) AddNextError(err error) {
 	sbqc.nextErrors = append(sbqc.nextErrors, err)
 }
 
+func (sbqc *subBQInsertAllClient) SetSleepPriorToPut(d time.Duration) {
+	sbqc.sleepPriorToPut = d
+}
+
 func (sbqc *subBQInsertAllClient) AssertStringSlice(t *testing.T, expected []string) {
 	got := make([]string, 0, len(sbqc.rows))
 	for _, row := range sbqc.rows {
@@ -75,7 +89,8 @@ func (sbqc *subBQInsertAllClient) AssertStringSlice(t *testing.T, expected []str
 }
 
 type TestBQInsertAllThickClientConfig struct {
-	BatchSize int
+	BatchSize              int
+	MaxRetryDeadlineOffset time.Duration
 }
 
 func newTestBQInsertAllThickClient(t *testing.T, cfg *TestBQInsertAllThickClientConfig) (*subBQInsertAllClient, *bqInsertAllThickClient) {
@@ -83,7 +98,7 @@ func newTestBQInsertAllThickClient(t *testing.T, cfg *TestBQInsertAllThickClient
 	if cfg == nil {
 		cfg = new(TestBQInsertAllThickClientConfig)
 	}
-	retryClient, err := newBQInsertAllThickClient(client, cfg.BatchSize, stdLogger{})
+	retryClient, err := newBQInsertAllThickClient(client, cfg.BatchSize, cfg.MaxRetryDeadlineOffset, stdLogger{})
 	assertNoErrorFatal(t, err)
 	return client, retryClient
 }
@@ -127,14 +142,28 @@ func TestBQInsertAllThickClientBatchExhaustBatch(t *testing.T) {
 	stubClient.AssertStringSlice(t, []string{"hello", "world", "!"})
 }
 
+func TestBQInsertAllThickClientFlushMaxDeadlineExhausted(t *testing.T) {
+	stubClient, client := newTestBQInsertAllThickClient(t, &TestBQInsertAllThickClientConfig{
+		BatchSize:              1,
+		MaxRetryDeadlineOffset: time.Millisecond * 100,
+	})
+	defer stubClient.Close()
+	stubClient.SetSleepPriorToPut(time.Millisecond * 200)
+
+	flushed, err := client.Put("hello")
+	assertError(t, err)
+	assertEqual(t, true, flushed)
+	assertEqual(t, true, errors.Is(err, context.DeadlineExceeded))
+}
+
 func TestNewBQInsertAllThickClientWithNilClient(t *testing.T) {
-	client, err := newBQInsertAllThickClient(nil, 0, stdLogger{})
+	client, err := newBQInsertAllThickClient(nil, 0, 0, stdLogger{})
 	assertError(t, err)
 	assertNil(t, client)
 }
 
 func TestNewBQInsertAllThickClientWithNilLogger(t *testing.T) {
-	client, err := newBQInsertAllThickClient(new(subBQInsertAllClient), 0, nil)
+	client, err := newBQInsertAllThickClient(new(subBQInsertAllClient), 0, 0, nil)
 	assertError(t, err)
 	assertNil(t, client)
 }
@@ -157,7 +186,7 @@ func TestNewStdBQInsertAllThickClientInputErrors(t *testing.T) {
 	for _, testCase := range testCases {
 		client, err := newStdBQInsertAllThickClient(
 			testCase.ProjectID, testCase.DataSetID, testCase.TableID,
-			false, false, 0,
+			false, false, 0, 0,
 			stdLogger{},
 		)
 		assertError(t, err)
