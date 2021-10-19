@@ -17,16 +17,7 @@ package bqwriter
 import (
 	"reflect"
 	"testing"
-	"time"
 )
-
-func assertSignal(t *testing.T, signalCh <-chan struct{}) {
-	select {
-	case <-signalCh:
-	case <-time.After(time.Millisecond * 500):
-		t.Error("signal channel timed out after 500ms")
-	}
-}
 
 func assertError(t *testing.T, err error) {
 	if err == nil {
@@ -49,6 +40,12 @@ func assertNoErrorFatal(t *testing.T, err error) {
 func assertEqual(t *testing.T, a, b interface{}) {
 	if !reflect.DeepEqual(a, b) {
 		t.Errorf("expected %v == %v", a, b)
+	}
+}
+
+func assertNotEqualShallow(t *testing.T, a, b interface{}) {
+	if a == b {
+		t.Errorf("expected (shallow) %v != %v", a, b)
 	}
 }
 
