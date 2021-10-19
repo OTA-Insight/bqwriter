@@ -8,6 +8,7 @@
 - remove the builder-pattern approach used to build a streamer,
   and instead use a clean Config approach, as to keep it as simple as possible,
   while at the same time being more Go idiomatic;
+- upgrade `google.golang.org/grpc` to `v1.41.0`, was on `v1.40.0`;
 
 ## v0.1.0 (2021-10-18)
 
