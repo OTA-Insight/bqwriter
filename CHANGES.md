@@ -1,13 +1,13 @@
 # Changes
 
-## v0.3.0 (2021-10-20)
+## [v0.3.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.2.0...v0.3.0) (2021-10-20)
 
 - remove unused WriteRetryConfig (its use was eliminated in v0.2.0);
-- fix a linter issue found in v0.2.0 `streamer.go` codebase (indention);
+- fix a linter issue found in `v0.2.0`'s `streamer.go` codebase (indention);
 
 work in progress
 
-## v0.2.0 (2021-10-19)
+## [v0.2.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.1.0...v0.2.0) (2021-10-19)
 
 - remove exponential back off logic from insertAll driven streamer client,
   as this logic is already built-in the std BQ client used internally;
