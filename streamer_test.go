@@ -23,6 +23,36 @@ import (
 	"time"
 )
 
+func TestNewStreamerInputErrors(t *testing.T) {
+	testCases := []struct {
+		ProjectID string
+		DataSetID string
+		TableID   string
+	}{
+		{"", "", ""},
+		{"a", "", ""},
+		{"", "a", ""},
+		{"", "", "a"},
+		{"a", "b", ""},
+		{"a", "", "b"},
+		{"", "a", "b"},
+		{"", "a", "b"},
+	}
+	for testCaseIndex, testCase := range testCases {
+		builder, err := NewStreamer(
+			context.Background(),
+			testCase.ProjectID, testCase.DataSetID, testCase.TableID,
+			nil,
+		)
+		if err == nil {
+			t.Errorf("testCase #%d: expected an error to be returned, non was received", testCaseIndex)
+		}
+		if builder != nil {
+			t.Errorf("testCase #%d: expected builder to be nil, received one", testCaseIndex)
+		}
+	}
+}
+
 // stubBQClient is an in-memory stub client for the bqClient interface,
 // allowing us to see what data is written into it
 type stubBQClient struct {
@@ -139,13 +169,17 @@ type testStreamerConfig struct {
 func newTestStreamer(ctx context.Context, t *testing.T, cfg testStreamerConfig) (*stubBQClient, *Streamer) {
 	client := new(stubBQClient)
 	// always use same client for our purposes
-	clientBuilder := func(context.Context) (bqClient, error) {
+	clientBuilder := func(ctx context.Context, projectID, dataSetID, tableID string, logger Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
 		return client, nil
 	}
 	streamer, err := newStreamerWithClientBuilder(
 		ctx, clientBuilder,
-		cfg.WorkerCount, cfg.WorkerQueueSize,
-		cfg.MaxBatchDelay, nil,
+		"a", "b", "c",
+		&StreamerConfig{
+			WorkerCount:     cfg.WorkerCount,
+			WorkerQueueSize: cfg.WorkerQueueSize,
+			MaxBatchDelay:   cfg.MaxBatchDelay,
+		},
 	)
 	assertNoErrorFatal(t, err)
 	return client, streamer

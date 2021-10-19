@@ -40,33 +40,68 @@ type streamerJob struct {
 	Data interface{}
 }
 
-type clientBuilderFunc func(context.Context) (bqClient, error)
+// NewStreamer creates a new Streamer Client. StreamerConfig is optional,
+// all other parameters are required.
+//
+// An error is returned in case the Streamer Client couldn't be created for some unexpected reason,
+// most likely something going wrong within the layer of actually interacting with GCloud.
+func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
+	return newStreamerWithClientBuilder(
+		ctx,
+		func(ctx context.Context, projectID, dataSetID, tableID string, logger Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
+			if storageCfg != nil {
+				return nil, errors.New("create new streamer: storage client isn't supported yet")
+			} else {
+				return newStdBQInsertAllThickClient(
+					projectID, dataSetID, tableID,
+					!insertAllCfg.FailOnInvalidRows,
+					!insertAllCfg.FailForUnknownValues,
+					insertAllCfg.BatchSize,
+					logger,
+				)
+			}
+		},
+		projectID, dataSetID, tableID,
+		cfg,
+	)
+}
 
-func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuilderFunc, workerCount int, workerQueueSize int, maxBatchDelay time.Duration, logger Logger) (*Streamer, error) {
-	if workerCount <= 0 {
-		workerCount = DefaultWorkerCount
+type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID string, logger Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error)
+
+func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuilderFunc, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
+	if projectID == "" {
+		return nil, errors.New("NewStreamerBuilder: projectID is empty: should be defined")
 	}
-	if maxBatchDelay == 0 {
-		maxBatchDelay = DefaultMaxBatchDelay
+	if dataSetID == "" {
+		return nil, errors.New("NewStreamerBuilder: dataSetID is empty: should be defined")
 	}
-	if workerQueueSize <= 0 {
-		workerQueueSize = DefaultWorkerQueueSize
+	if tableID == "" {
+		return nil, errors.New("NewStreamerBuilder: tableID is empty: should be defined")
 	}
-	if logger == nil {
-		logger = stdLogger{}
-	}
+
+	// sanitize cfg
+	cfg = sanitizeStreamerConfig(cfg)
+
+	// create streamer
 	workerCtx, workerCtxCancelFn := context.WithCancel(ctx)
 	s := &Streamer{
-		logger: logger,
+		logger: cfg.Logger,
 
-		workerCh:       make(chan streamerJob, workerCount*workerQueueSize),
+		workerCh:       make(chan streamerJob, cfg.WorkerCount*cfg.WorkerQueueSize),
 		workerCtx:      workerCtx,
 		workerCancelFn: workerCtxCancelFn,
 	}
-	for i := 0; i < workerCount; i++ {
-		logger.Debugf("starting streamer worker thread #%d", i+1)
+	// create & spawn all worker threads
+	for i := 0; i < cfg.WorkerCount; i++ {
+		cfg.Logger.Debugf("starting streamer worker thread #%d", i+1)
 		s.workerWg.Add(1)
-		client, err := clientBuilder(workerCtx)
+		// each worker thread has its own client
+		client, err := clientBuilder(
+			workerCtx,
+			projectID, dataSetID, tableID,
+			cfg.Logger,
+			cfg.InsertAllClient, cfg.StorageClient,
+		)
 		if err != nil {
 			workerCtxCancelFn()
 			return nil, fmt.Errorf("create streamer client: create client for worker thread: %w", err)
@@ -76,10 +111,10 @@ func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuild
 			defer func() {
 				err := client.Close()
 				if err != nil {
-					logger.Errorf("streamer: failed to close worker's BQ client: %v", err)
+					cfg.Logger.Errorf("streamer: failed to close worker's BQ client: %v", err)
 				}
 			}()
-			s.doWork(client, maxBatchDelay)
+			s.doWork(client, cfg.MaxBatchDelay)
 		}()
 	}
 	return s, nil

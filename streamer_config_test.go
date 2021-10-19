@@ -226,7 +226,7 @@ func TestSanitizeStreamerConfigSharedDefaults(t *testing.T) {
 		// which we can do by starting from the default cfg and simply
 		// assigning our fresh variables
 		// ... input
-		inputCfg := deepCloneStreamerConfig(&expectedDefaultStreamerConfig)
+		inputCfg := new(StreamerConfig)
 		inputCfg.WorkerCount = testCase.InputWorkerCount
 		inputCfg.WorkerQueueSize = testCase.InputWorkerQueueSize
 		inputCfg.MaxBatchDelay = testCase.InputMaxBatchDelay
@@ -336,7 +336,9 @@ func TestSanitizeStreamerConfigInsertAllDefaults(t *testing.T) {
 		// which we can do by starting from the default cfg and simply
 		// assigning our fresh variables
 		// ... input
-		inputCfg := deepCloneStreamerConfig(&expectedDefaultStreamerConfig)
+		inputCfg := &StreamerConfig{
+			InsertAllClient: new(InsertAllClientConfig),
+		}
 		inputCfg.InsertAllClient.FailOnInvalidRows = testCase.InputFailOnInvalidRows
 		inputCfg.InsertAllClient.FailForUnknownValues = testCase.InputFailForUnknownValues
 		inputCfg.InsertAllClient.BatchSize = testCase.InputBatchSize
@@ -347,6 +349,10 @@ func TestSanitizeStreamerConfigInsertAllDefaults(t *testing.T) {
 		expectedOutputCfg.InsertAllClient.FailForUnknownValues = testCase.ExpectedFailForUnknownValues
 		expectedOutputCfg.InsertAllClient.BatchSize = testCase.ExpectedBatchSize
 		expectedOutputCfg.InsertAllClient.MaxRetryDeadlineOffset = testCase.ExpectedMaxRetryDeadlineOffset
+		// ensure to configure out streamer config correctly,
+		// for the worker queue size, in case the batch size is defined
+		inputCfg.WorkerQueueSize = (testCase.ExpectedBatchSize + 1) / 2
+		expectedOutputCfg.WorkerQueueSize = inputCfg.WorkerQueueSize
 		// and finally piggy-back on our other logic
 		assertStreamerConfig(t, inputCfg, expectedOutputCfg)
 	}
@@ -495,7 +501,7 @@ func TestSanitizeStreamerConfigStorageDefaults(t *testing.T) {
 		// which we can do by starting from the default cfg and simply
 		// assigning our fresh variables
 		// ... input
-		inputCfg := deepCloneStreamerConfig(&expectedDefaultStreamerConfig)
+		inputCfg := new(StreamerConfig)
 		inputCfg.StorageClient = &StorageClientConfig{
 			MaxRetries:             testCase.InputMaxRetries,
 			InitialRetryDelay:      testCase.InputInitialRetryDelay,
@@ -514,3 +520,10 @@ func TestSanitizeStreamerConfigStorageDefaults(t *testing.T) {
 		assertStreamerConfig(t, inputCfg, expectedOutputCfg)
 	}
 }
+
+type testLogger struct{}
+
+func (testLogger) Debug(_args ...interface{})                    {}
+func (testLogger) Debugf(_template string, _args ...interface{}) {}
+func (testLogger) Error(_args ...interface{})                    {}
+func (testLogger) Errorf(_template string, _args ...interface{}) {}
