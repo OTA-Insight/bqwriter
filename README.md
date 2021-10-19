@@ -47,22 +47,23 @@ Please also note that errors are not handled gracefully in these examples as ot 
 ### Basic InsertAll Streamer
 
 ```go
-import "github.com/OTA-Insight/bqwriter"
+import (
+    "context"
 
-// create stream builder, used to configure the BQ (stream) writer
-bqWriterBuilder, err := bqwriter.NewStreamerBuilder(
+    "github.com/OTA-Insight/bqwriter"
+)
+
+// TODO: use more specific context
+ctx := context.Background()
+
+// create a BQ (stream) writer thread-safe client,
+bqWriter, err := bqwriter.NewStreamer(
+    ctx,
     "my-gcloud-project",
     "my-bq-dataset",
     "my-bq-table",
+    nil, // use default config
 )
-if err != nil {
-    // TODO: handle error gracefully
-    panic(err)
-}
-
-// build the BQ (stream) writer client
-ctx := context.Background()  // TODO: use more specific context
-bqWriter, err = bqWriterBuilder.BuildStreamer(ctx)
 if err != nil {
     // TODO: handle error gracefully
     panic(err)
@@ -77,12 +78,13 @@ bqWriter.Write(&myRow{Timestamp: time.UTC().Now(), Username: "test"})
 // multiple rows can be written using one `Write` call per row.
 ```
 
-You build a `Streamer` client using the `StreamerBuilder` as you can see in the above example.
-Note that there is a lot you can still configure in the Streamer builder (`bqWriterBuilder`) prior to actually
-building the streamer. Please consult the <https://pkg.go.dev/github.com/OTA-Insight/bqwriter#StreamerBuilder> for more information.
+You build a `Streamer` client using optionally the `StreamerConfig` as you can see in the above example.
+The entire config is optional and has sane defaults, but note that there is a lot you can configure in this config prior to actually building the streamer. Please consult the <https://pkg.go.dev/github.com/OTA-Insight/bqwriter#StreamerConfig> for more information.
 
-The `myRow` structure used in this example is one way to pass in the information of a single row to the `(*Streamer).Write` method.
-This structure implements the [`ValueSaver`](https://pkg.go.dev/cloud.google.com/go/bigquery#ValueSaver) interface. An example of this:
+The `myRow` structure used in this example is one way to pass in the information
+of a single row to the `(*Streamer).Write` method. This structure implements the
+[`ValueSaver`](https://pkg.go.dev/cloud.google.com/go/bigquery#ValueSaver) interface.
+An example of this:
 
 ```go
 import (
@@ -121,33 +123,36 @@ here is how we create a `Streamer` client with a more
 custom configuration:
 
 ```go
-import "github.com/OTA-Insight/bqwriter"
+import (
+    "context"
 
-// create stream builder, used to configure the BQ (stream) writer
-bqWriterBuilder, err := bqwriter.NewStreamerBuilder(
+    "github.com/OTA-Insight/bqwriter"
+)
+
+// TODO: use more specific context
+ctx := context.Background()
+
+// create a BQ (stream) writer thread-safe client,
+bqWriter, err := bqwriter.NewStreamer(
+    ctx,
     "my-gcloud-project",
     "my-bq-dataset",
     "my-bq-table",
+    &bqwriter.StreamerConfig{
+        // use 5 background worker threads
+        WorkerCount: 5,
+        // ignore errors for invalid/unknown rows/values,
+        // by default these errors make a write fail
+        InsertAllClient: &bqwriter.InsertAllClientConfig{
+             // Write rows fail for invalid/unknown rows/values errors,
+             // rather than ignoring these errors and skipping the faulty rows/values.
+             // These errors are logged using the configured logger,
+             // and the faulty (batched) rows are dropped silently.
+            FailOnInvalidRows:    true,
+            FailForUnknownValues: true, 
+        },
+    },
 )
-if err != nil {
-    // TODO: handle error gracefully
-    panic(err)
-}
-
-// build the BQ (stream) writer client
-ctx := context.Background()  // TODO: use more specific context
-bqWriter, err = bqWriterBuilder.
-    // use 5 background worker threads,
-    WorkerCount(5).
-    // ignore errors for invalid/unknown rows/values,
-    // by default these errors make a write fail
-    ClientInsertAll(true, true).
-    // disable retrying on errors
-    WriteRetryConfig(&bqwriter.WriteRetryConfig{
-        MaxRetries: -1,
-    }).
-    // build the streamer using your custom configuration
-    BuildStreamer(ctx)
 if err != nil {
     // TODO: handle error gracefully
     panic(err)
