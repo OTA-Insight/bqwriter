@@ -1,6 +1,12 @@
 # Changes
 
-## [v0.3.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.2.0...v0.3.0) (2021-10-20)
+## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.0...v0.4.0) (ETA: 2021-11-01) (TODO)
+
+- fix README.md badges and rename LICENSE to LICENSE.txt;
+
+work in progress
+
+## [v0.3.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.2.0...v0.3.0) (2021-10-25)
 
 - remove unused WriteRetryConfig (its use was eliminated in v0.2.0);
 - fix a linter issue found in `v0.2.0`'s `streamer.go` codebase (indention);
