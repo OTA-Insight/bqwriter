@@ -196,7 +196,7 @@ func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig) {
 	sanCfg.StorageClient = sanitizeStorageClientConfig(cfg.StorageClient)
 
 	// return the sanitized named output config
-	return
+	return sanCfg
 }
 
 // sanitizeInsertAllClientConfig is used to fill in some or all properties
@@ -239,7 +239,7 @@ func sanitizeInsertAllClientConfig(cfg *InsertAllClientConfig) (sanCfg *InsertAl
 	}
 
 	// return the sanitized named output config
-	return
+	return sanCfg
 }
 
 // sanitizeStorageClientConfig is used to fill in some or all properties
@@ -300,5 +300,5 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	}
 
 	// return the sanitized named output non-nil config
-	return
+	return sanCfg
 }

@@ -23,17 +23,17 @@ func deepCloneStreamerConfig(cfg *StreamerConfig) *StreamerConfig {
 	if cfg == nil {
 		return nil
 	}
-	copy := new(StreamerConfig)
-	*copy = *cfg
+	cfgCopy := new(StreamerConfig)
+	*cfgCopy = *cfg
 	if cfg.InsertAllClient != nil {
-		copy.InsertAllClient = new(InsertAllClientConfig)
-		*(copy.InsertAllClient) = *(cfg.InsertAllClient)
+		cfgCopy.InsertAllClient = new(InsertAllClientConfig)
+		*(cfgCopy.InsertAllClient) = *(cfg.InsertAllClient)
 	}
 	if cfg.StorageClient != nil {
-		copy.StorageClient = new(StorageClientConfig)
-		*(copy.StorageClient) = *(cfg.StorageClient)
+		cfgCopy.StorageClient = new(StorageClientConfig)
+		*(cfgCopy.StorageClient) = *(cfg.StorageClient)
 	}
-	return copy
+	return cfgCopy
 }
 
 var (

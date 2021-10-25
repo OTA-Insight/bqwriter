@@ -17,6 +17,7 @@ package bqwriter
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"sort"
 	"testing"
@@ -41,9 +42,8 @@ func (sbqc *subBQInsertAllClient) Put(ctx context.Context, data interface{}) err
 	if sbqc.sleepPriorToPut > 0 {
 		time.Sleep(sbqc.sleepPriorToPut)
 	}
-	err := ctx.Err()
-	if err != nil {
-		return err
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("put data into BQ using stub insertAll: %w", err)
 	}
 	if rows, ok := data.([]interface{}); ok {
 		sbqc.rows = append(sbqc.rows, rows...)
@@ -190,6 +190,26 @@ func TestNewStdBQInsertAllThickClientInputErrors(t *testing.T) {
 			stdLogger{},
 		)
 		assertError(t, err)
+		assertEqual(t, true, errors.Is(err, invalidParamErr))
+		assertNil(t, client)
+	}
+}
+
+func TestNewBQInsertAllThickClientErrors(t *testing.T) {
+	testCases := []struct {
+		Client bqInsertAllClient
+		Logger Logger
+	}{
+		{nil, nil},
+		{new(subBQInsertAllClient), nil},
+		{nil, testLogger{}},
+	}
+	for _, testCase := range testCases {
+		client, err := newBQInsertAllThickClient(
+			testCase.Client, 0, 0, testCase.Logger,
+		)
+		assertError(t, err)
+		assertEqual(t, true, errors.Is(err, invalidParamErr))
 		assertNil(t, client)
 	}
 }

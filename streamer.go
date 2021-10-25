@@ -50,7 +50,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 		ctx,
 		func(ctx context.Context, projectID, dataSetID, tableID string, logger Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
 			if storageCfg != nil {
-				return nil, errors.New("create new streamer: storage client isn't supported yet")
+				return nil, fmt.Errorf("create new streamer: using storage client: %w", notSupportedErr)
 			}
 
 			return newStdBQInsertAllThickClient(
@@ -70,13 +70,13 @@ type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID s
 
 func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuilderFunc, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
 	if projectID == "" {
-		return nil, errors.New("NewStreamerBuilder: projectID is empty: should be defined")
+		return nil, fmt.Errorf("streamer client creation: validate projectID: %w: missing", invalidParamErr)
 	}
 	if dataSetID == "" {
-		return nil, errors.New("NewStreamerBuilder: dataSetID is empty: should be defined")
+		return nil, fmt.Errorf("streamer client creation: validate dataSetID: %w: missing", invalidParamErr)
 	}
 	if tableID == "" {
-		return nil, errors.New("NewStreamerBuilder: tableID is empty: should be defined")
+		return nil, fmt.Errorf("streamer client creation: validate tableID: %w: missing", invalidParamErr)
 	}
 
 	// sanitize cfg
@@ -129,19 +129,19 @@ func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuild
 // configured to do so.
 func (s *Streamer) Write(data interface{}) error {
 	if data == nil {
-		return errors.New("Streamer::Write: data is nil: should be defined")
+		return fmt.Errorf("streamer client write: validate data: %w: nil data", invalidParamErr)
 	}
 	job := streamerJob{
 		Data: data,
 	}
-	if errors.Is(s.workerCtx.Err(), context.Canceled) {
-		return errors.New("write data into BQ streamer: streamer is already closed")
+	if err := s.workerCtx.Err(); errors.Is(err, context.Canceled) {
+		return fmt.Errorf("write data into BQ streamer: streamer worker context: %w", err)
 	}
 	select {
 	case s.workerCh <- job:
 		s.logger.Debug("inserted write job into bq streamer")
 	case <-s.workerCtx.Done():
-		return errors.New("write data into BQ streamer: worker is busy: streamer is already closed")
+		return fmt.Errorf("write data into BQ streamer: worker is busy: streamer worker context: %w", context.Canceled)
 	}
 	return nil
 }

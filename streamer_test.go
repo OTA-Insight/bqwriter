@@ -17,6 +17,7 @@ package bqwriter
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"sort"
 	"testing"
@@ -38,18 +39,15 @@ func TestNewStreamerInputErrors(t *testing.T) {
 		{"", "a", "b"},
 		{"", "a", "b"},
 	}
-	for testCaseIndex, testCase := range testCases {
+	for _, testCase := range testCases {
 		builder, err := NewStreamer(
 			context.Background(),
 			testCase.ProjectID, testCase.DataSetID, testCase.TableID,
 			nil,
 		)
-		if err == nil {
-			t.Errorf("testCase #%d: expected an error to be returned, non was received", testCaseIndex)
-		}
-		if builder != nil {
-			t.Errorf("testCase #%d: expected builder to be nil, received one", testCaseIndex)
-		}
+		assertError(t, err)
+		assertEqual(t, true, errors.Is(err, invalidParamErr))
+		assertNil(t, builder)
 	}
 }
 
@@ -209,12 +207,14 @@ func TestStreamerWriteErrorAlreadyClosed(t *testing.T) {
 func TestStreamerWriteErrorNilData(t *testing.T) {
 	_, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
 	defer streamer.Close()
-	assertError(t, streamer.Write(nil))
+	err := streamer.Write(nil)
+	assertError(t, err)
+	assertEqual(t, true, errors.Is(err, invalidParamErr))
 }
 
 func TestStreamerCloseError(t *testing.T) {
 	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
-	client.AddNextError(errors.New("some client close error"))
+	client.AddNextError(fmt.Errorf("some client close error: %w", testStaticErr))
 	streamer.Close()
 	// this is logged to stderr, so should be okay for user
 }

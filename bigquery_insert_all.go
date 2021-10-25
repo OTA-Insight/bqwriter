@@ -16,7 +16,6 @@ package bqwriter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -65,12 +64,18 @@ func (bqc *stdBQInsertAllClient) Put(ctx context.Context, data interface{}) erro
 	inserter := bqc.client.Dataset(bqc.dataSetID).Table(bqc.tableID).Inserter()
 	inserter.SkipInvalidRows = bqc.skipInvalidRows
 	inserter.IgnoreUnknownValues = bqc.ignoreUnknownValues
-	return inserter.Put(ctx, data)
+	if err := inserter.Put(ctx, data); err != nil {
+		return fmt.Errorf("put data into BQ using google-API inertAll: %w", err)
+	}
+	return nil
 }
 
 // Close implements bqInsertAllClient::Close
 func (bqc *stdBQInsertAllClient) Close() error {
-	return bqc.client.Close()
+	if err := bqc.client.Close(); err != nil {
+		return fmt.Errorf("close BQ google-API insertAll client: %w", err)
+	}
+	return nil
 }
 
 // newStdBQInsertAllClient creates a new stdBQInsertAllClient,
@@ -95,16 +100,18 @@ func newStdBQInsertAllClient(projectID, dataSetID, tableID string, skipInvalidRo
 	}, nil
 }
 
+// TODO: test in unit test on this invalidParamErr, to ensure that this is the error we receive indeed!!
+
 // newStdBQInsertAllThickClient creates a new bqInsertAllThickClient.
 func newStdBQInsertAllThickClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool, batchSize int, maxRetryDeadlineOffset time.Duration, logger Logger) (*bqInsertAllThickClient, error) {
 	if projectID == "" {
-		return nil, errors.New("NewStreamer: projectID is empty: should be defined")
+		return nil, fmt.Errorf("thick client creation: validate projectID: %w: missing", invalidParamErr)
 	}
 	if dataSetID == "" {
-		return nil, errors.New("NewStreamer: dataSetID is empty: should be defined")
+		return nil, fmt.Errorf("thick client creation: validate dataSetID: %w: missing", invalidParamErr)
 	}
 	if tableID == "" {
-		return nil, errors.New("NewStreamer: tableID is empty: should be defined")
+		return nil, fmt.Errorf("thick client creation: validate tableID: %w: missing", invalidParamErr)
 	}
 	client, err := newStdBQInsertAllClient(projectID, dataSetID, tableID, skipInvalidRows, ignoreUnknownValues)
 	if err != nil {
@@ -115,10 +122,10 @@ func newStdBQInsertAllThickClient(projectID, dataSetID, tableID string, skipInva
 
 func newBQInsertAllThickClient(client bqInsertAllClient, batchSize int, maxRetryDeadlineOffset time.Duration, logger Logger) (*bqInsertAllThickClient, error) {
 	if client == nil {
-		return nil, errors.New("BQ Insert All Client expected")
+		return nil, fmt.Errorf("thick client creation: validate client: %w: missing", invalidParamErr)
 	}
 	if logger == nil {
-		return nil, errors.New("BQ InsertAll Client: Logger expected")
+		return nil, fmt.Errorf("thick client creation: logger client: %w: missing", invalidParamErr)
 	}
 	if batchSize <= 0 {
 		batchSize = DefaultBatchSize
@@ -176,7 +183,10 @@ func (bqc *bqInsertAllThickClient) Flush() (err error) {
 	// we do wrap it with a deadline context to ensure we get a correct deadline
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bqc.maxRetryDeadlineOffset)
 	defer cancelFunc()
-	return bqc.client.Put(ctx, bqc.rows)
+	if err := bqc.client.Put(ctx, bqc.rows); err != nil {
+		return fmt.Errorf("thick insertAll BQ client: put batched rows (count=%d): %w", len(bqc.rows), err)
+	}
+	return nil
 }
 
 // Close implements bqClient::Close
@@ -184,5 +194,8 @@ func (bqc *bqInsertAllThickClient) Close() error {
 	// no need to flush first,
 	// as this is an internal client used by Streamer only,
 	// which does flush prior to closing it :)
-	return bqc.client.Close()
+	if err := bqc.client.Close(); err != nil {
+		return fmt.Errorf("close thick insertAll BQ client: %w", err)
+	}
+	return nil
 }

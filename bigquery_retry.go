@@ -105,7 +105,7 @@ func (r *bqRetryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
 		return 0, false
 	}
 	// correct the Max time, as to stay as close as possible to our max elapsed retry time
-	elapsedTime := time.Now().Sub(r.startTime)
+	elapsedTime := time.Since(r.startTime)
 	r.backoff.Max = r.maxRetryDeadlineOffset - elapsedTime
 	// retry with the pause time indicated by the gax BackOff algorithm
 	r.retries += 1

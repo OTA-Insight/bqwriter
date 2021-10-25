@@ -16,7 +16,7 @@ package bqwriter
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -34,11 +34,11 @@ func TestBQRetryerRetryOpFlowFailure(t *testing.T) {
 		1.1,
 		nil, // no error filter
 	)
-	expectedFinalErr := errors.New("fourth error")
+	expectedFinalErr := fmt.Errorf("fourth error: %w", testStaticErr)
 	errors := []error{
-		errors.New("first error"),
-		errors.New("second error"),
-		errors.New("third error"),
+		fmt.Errorf("first error: %w", testStaticErr),
+		fmt.Errorf("second error: %w", testStaticErr),
+		fmt.Errorf("third error: %w", testStaticErr),
 		expectedFinalErr,
 	}
 	op := func(context.Context) error {
@@ -64,9 +64,9 @@ func TestBQRetryerRetryOpFlowSuccess(t *testing.T) {
 		nil, // no error filter
 	)
 	errors := []error{
-		errors.New("first error"),
-		errors.New("second error"),
-		errors.New("third error"),
+		fmt.Errorf("first error: %w", testStaticErr),
+		fmt.Errorf("second error: %w", testStaticErr),
+		fmt.Errorf("third error: %w", testStaticErr),
 	}
 	op := func(context.Context) error {
 		if len(errors) > 0 {
@@ -106,7 +106,7 @@ func TestBQRetryerNoRetryBecauseOfCanceledContext(t *testing.T) {
 		DefaultRetryDelayMultiplier,
 		nil, // no error filter
 	)
-	pause, shouldRetry := retryer.Retry(errors.New("a test error"))
+	pause, shouldRetry := retryer.Retry(fmt.Errorf("retry: %w", testStaticErr))
 	assertEqual(t, false, shouldRetry)
 	assertEqual(t, time.Duration(0), pause)
 }
@@ -122,14 +122,14 @@ func TestBQRetryerNoRetryBecauseOfMaxRetries(t *testing.T) {
 	)
 
 	// first time will work
-	pause, shouldRetry := retryer.Retry(errors.New("a test error"))
+	pause, shouldRetry := retryer.Retry(fmt.Errorf("retry: %w", testStaticErr))
 	assertEqual(t, true, shouldRetry)
 	if pause == 0 || pause > DefaultInitialRetryDelay {
 		t.Errorf("unexpeted pause duration: %v", pause)
 	}
 
 	// second time not, as we reached our limit of max retries
-	pause, shouldRetry = retryer.Retry(errors.New("a test error"))
+	pause, shouldRetry = retryer.Retry(fmt.Errorf("retry: %w", testStaticErr))
 	assertEqual(t, false, shouldRetry)
 	assertEqual(t, time.Duration(0), pause)
 }
@@ -147,14 +147,14 @@ func TestBQRetryerNoRetryBecauseOfErrorFilter(t *testing.T) {
 	)
 
 	// first time will work, as the filter didn't trigger
-	pause, shouldRetry := retryer.Retry(errors.New("retry this test error please"))
+	pause, shouldRetry := retryer.Retry(fmt.Errorf("retry (should continue): %w", testStaticErr))
 	assertEqual(t, true, shouldRetry)
 	if pause == 0 || pause > DefaultInitialRetryDelay {
 		t.Errorf("unexpeted pause duration: %v", pause)
 	}
 
 	// second time not, as we triggered the error filter in the wrong way
-	pause, shouldRetry = retryer.Retry(errors.New("another test error, but please do not stop! :("))
+	pause, shouldRetry = retryer.Retry(fmt.Errorf("retry (should stop): %w", testStaticErr))
 	assertEqual(t, false, shouldRetry)
 	assertEqual(t, time.Duration(0), pause)
 }
@@ -176,7 +176,7 @@ func TestBQGRPCRetryErrorFilterFalse(t *testing.T) {
 	// nil error is not an accepted error
 	assertEqual(t, false, bqGRPCRetryErrorFilter(nil))
 	// custom error is not an accepted error
-	assertEqual(t, false, bqGRPCRetryErrorFilter(errors.New("todo")))
+	assertEqual(t, false, bqGRPCRetryErrorFilter(fmt.Errorf("todo: %w", testStaticErr)))
 	// correct error, but wrong code
 	err := status.New(codes.Aborted, "test error").Err()
 	assertEqual(t, false, bqGRPCRetryErrorFilter(err))
