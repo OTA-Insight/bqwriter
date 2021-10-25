@@ -6,8 +6,6 @@
 - fix a linter issue found in `v0.2.0`'s `streamer.go` codebase (indention);
 - add golint-ci dev + CI support for better code quality;
 
-work in progress
-
 ## [v0.2.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.1.0...v0.2.0) (2021-10-19)
 
 - remove exponential back off logic from insertAll driven streamer client,
