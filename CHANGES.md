@@ -4,6 +4,7 @@
 
 - remove unused WriteRetryConfig (its use was eliminated in v0.2.0);
 - fix a linter issue found in `v0.2.0`'s `streamer.go` codebase (indention);
+- add golint-ci dev + CI support for better code quality;
 
 work in progress
 
