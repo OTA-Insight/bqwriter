@@ -3,6 +3,7 @@
 ## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.4.0) (ETA: 2021-11-01) (TODO)
 
 - enforce issue templates in the OTA-Insight/bqwriter GitHub project;
+- add a pull request template in the OTA-Insight/bqwriter GitHub project;
 
 work in progress
 
