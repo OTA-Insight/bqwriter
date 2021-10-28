@@ -1,7 +1,7 @@
 name: Proposal
 description: File a proposal
 title: "[Proposal]: "
-labels: ["proposal", "feature"]
+labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
