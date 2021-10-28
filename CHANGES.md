@@ -1,6 +1,12 @@
 # Changes
 
-## [v0.3.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.0...v0.3.1) (ETA: 2021-10-28) (TODO)
+## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.4.0) (ETA: 2021-11-01) (TODO)
+
+- enforce issue templates in the OTA-Insight/bqwriter GitHub project;
+
+work in progress
+
+## [v0.3.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.0...v0.3.1) (2021-10-28)
 
 - fix README.md badges and rename LICENSE to LICENSE.txt;
 - updated dependencies to latest:
