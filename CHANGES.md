@@ -1,10 +1,11 @@
 # Changes
 
-## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.0...v0.4.0) (ETA: 2021-11-01) (TODO)
+## [v0.3.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.0...v0.3.1) (ETA: 2021-10-28) (TODO)
 
 - fix README.md badges and rename LICENSE to LICENSE.txt;
-
-work in progress
+- updated dependencies to latest:
+  - golang.org/x/*: 2021-10-20+;
+  - google.golang.org/api: v0.59.0;
 
 ## [v0.3.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.2.0...v0.3.0) (2021-10-25)
 
