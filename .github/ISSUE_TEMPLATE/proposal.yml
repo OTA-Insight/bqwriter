@@ -57,7 +57,7 @@ body:
         - 0.3.1 (Latest)
         - 0.3.0
         - Older
-        - None
+        - N/A
     validations:
       required: true
   - type: dropdown
