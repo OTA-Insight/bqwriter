@@ -190,7 +190,8 @@ advanced authorizations still possible:
   to create an `oauth2.TokenSource`;
 
 To conclude. We currently do not support advanced ways for Authorization, but we're open to include support for these,
-if there is sufficient interest for it.
+if there is sufficient interest for it. The [Contributing section](#Contributing) section explains how you can actively
+help to get this supported if desired.
 
 ## Contributing
 

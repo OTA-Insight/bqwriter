@@ -4,6 +4,8 @@
 
 - enforce issue templates in the OTA-Insight/bqwriter GitHub project;
 - add a pull request template in the OTA-Insight/bqwriter GitHub project;
+- rename this file to [CHANGELOG.md](CHANGELOG.md) (was CHANGES.md) in order to better reflect the usual conventions;
+- add other conventional special files: [AUTHORS](AUTHORS) and [CODEOWNERS](CODEOWNERS);
 
 work in progress
 
