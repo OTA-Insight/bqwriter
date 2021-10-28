@@ -26,3 +26,8 @@ discussed in your description above.
 List general components of the `OTA-Insight/bqwriter` Golang package that this PR will affect:
 
 * ...
+
+## Code of Conduct
+
+By submitting this pull request (PR), I Agree agree to follow this project's
+[Code of Conduct](https://github.com/OTA-Insight/bqwriter/blob/main/CONTRIBUTING.md#contributor-code-of-conduct).
