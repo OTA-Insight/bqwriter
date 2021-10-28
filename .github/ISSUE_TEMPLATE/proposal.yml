@@ -1,0 +1,81 @@
+name: Proposal
+description: File a proposal
+title: "[Proposal]: "
+labels: ["proposal", "feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this proposal!
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Details
+      description: |
+        How can we get in touch with you if we need more info?
+        You can leave this empty if you wish to converse directly via the comment
+        section of this proposal instead.
+      placeholder: ex. email@example.com
+    validations:
+      required: false
+  - type: textarea
+    id: what
+    attributes:
+      label: Summary of your proposal
+      description: |
+        Please describe us in summary here your proposal.
+      placeholder: A summary of your proposal.
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation for your proposal
+      description: |
+        What motivates you for this proposal. What problem or problems does it solve?
+        Why is this proposal relevant to others?
+      placeholder: Motivation for your proposal.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives for your proposal
+      description: |
+        What do you currently do to work around the fact that you are using
+        this library without this proposal already in existence? What valid
+        alternatives are there besides what you propose. Why not go for these?
+      placeholder: Alternatives to your proposal.
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: Version
+      description: What version of our software are you running?
+      options:
+        - 0.3.1 (Latest)
+        - 0.3.0
+        - Older
+        - None
+    validations:
+      required: true
+  - type: dropdown
+    id: platforms
+    attributes:
+      label: What platform are you mostly using planning to use our software on?
+      multiple: true
+      options:
+        - Windows
+        - MacOS
+        - Linux
+        - BSD
+        - Other
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/OTA-Insight/bqwriter/blob/main/CONTRIBUTING.md#contributor-code-of-conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
