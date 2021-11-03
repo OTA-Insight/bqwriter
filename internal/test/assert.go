@@ -12,44 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bqwriter
+package test
 
 import (
 	"reflect"
 	"testing"
 )
 
-func assertError(t *testing.T, err error) {
+func AssertError(t *testing.T, err error) {
 	if err == nil {
 		t.Error("no error returned while one is expected")
 	}
 }
 
-func assertNoError(t *testing.T, err error) {
+func AssertNoError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("no error expected while one is returned: %v", err)
 	}
 }
 
-func assertNoErrorFatal(t *testing.T, err error) {
+func AssertNoErrorFatal(t *testing.T, err error) {
 	if err != nil {
 		t.Fatalf("no error expected while one is returned: %v", err)
 	}
 }
 
-func assertEqual(t *testing.T, a, b interface{}) {
+func AssertEqual(t *testing.T, a, b interface{}) {
 	if !reflect.DeepEqual(a, b) {
 		t.Errorf("expected %v == %v", a, b)
 	}
 }
 
-func assertNotEqualShallow(t *testing.T, a, b interface{}) {
+func AssertNotEqualShallow(t *testing.T, a, b interface{}) {
 	if a == b {
 		t.Errorf("expected (shallow) %v != %v", a, b)
 	}
 }
 
-func assertNil(t *testing.T, a interface{}) {
+func AssertNil(t *testing.T, a interface{}) {
 	if a == nil {
 		return
 	}

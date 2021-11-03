@@ -14,7 +14,7 @@
 // limitations under the License.
 
 //nolint: goerr113, wrapcheck
-package bqstor
+package storage
 
 import (
 	"context"

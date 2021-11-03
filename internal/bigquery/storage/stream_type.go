@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bqstor
+package storage
 
 import (
 	storagepb "google.golang.org/genproto/googleapis/cloud/bigquery/storage/v1"
