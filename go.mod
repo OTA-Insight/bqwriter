@@ -10,9 +10,12 @@ require (
 
 require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/googleapis/gax-go v1.0.3
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/api v0.59.0 // indirect
-	google.golang.org/genproto v0.0.0-20211027162914-98a5263abeca // indirect
+	google.golang.org/genproto v0.0.0-20211027162914-98a5263abeca
+	google.golang.org/protobuf v1.27.1
 )
