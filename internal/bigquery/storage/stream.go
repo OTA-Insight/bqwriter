@@ -34,9 +34,9 @@ import (
 type ManagedStream struct {
 	streamSettings   *streamSettings
 	schemaDescriptor *descriptorpb.DescriptorProto
-	// destinationTable string
-	c  *bqStorage.BigQueryWriteClient
-	fc *flowController
+	destinationTable string
+	c                *bqStorage.BigQueryWriteClient
+	fc               *flowController
 
 	// aspects of the stream client
 	ctx    context.Context // retained context for the stream
@@ -75,9 +75,9 @@ type streamSettings struct {
 	// purpose is to aid in debug and diagnostic scenarios.
 	TraceID string
 
-	// // dataOrigin can be set for classifying metrics generated
-	// // by a stream.
-	// dataOrigin string
+	// dataOrigin can be set for classifying metrics generated
+	// by a stream.
+	dataOrigin string
 }
 
 func defaultStreamSettings() *streamSettings {
