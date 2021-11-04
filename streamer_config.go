@@ -32,7 +32,7 @@ type (
 		// each on their own goroutine and with an opt-out channel buffer per routine.
 		// Use a negative value in order to just want a single worker (same as defining it as 1 explicitly).
 		//
-		// Defaults to DefaultWorkerCount if not defined explicitly.
+		// Defaults to constant.DefaultWorkerCount if not defined explicitly.
 		WorkerCount int
 
 		// WorkerQueueSize defines the size of the job queue per worker used
@@ -42,13 +42,13 @@ type (
 		// Use a negative value in order to provide no buffer for the workers at all,
 		// not rcommended but a possibility for you to choose non the less.
 		//
-		// Defaults to MaxTotalElapsedRetryTime if not defined explicitly
+		// Defaults to constant.MaxTotalElapsedRetryTime if not defined explicitly
 		WorkerQueueSize int
 
 		// MaxBatchDelay defines the max amount of time a worker batches rows,
 		// prior to writing the batched rows, even when not yet full.
 		//
-		// Defaults to DefaultMaxBatchDelay if d == 0.
+		// Defaults to constant.DefaultMaxBatchDelay if d == 0.
 		MaxBatchDelay time.Duration
 
 		// Logger allows you to attach a logger to be used by the streamer,
@@ -87,7 +87,7 @@ type (
 		// actually writing it to BQ. Should a worker have rows left in its local cache when closing,
 		// it will flush/write these rows prior to closing.
 		//
-		// Defaults to DefaultBatchSize if n == 0,
+		// Defaults to constant.DefaultBatchSize if n == 0,
 		// use a negative value or an explicit value of 1
 		// in case you want to write each row directly.
 		BatchSize int
@@ -96,7 +96,7 @@ type (
 		// for its initial as well as all retry attempts. No retry should be attempted when already over this limit.
 		// This Offset is to be seen as a maximum, which can be stepped over but not by too much.
 		//
-		// Defaults to DefaultMaxRetryDeadlineOffset if MaxRetryDeadlineOffset == 0.
+		// Defaults to constant.DefaultMaxRetryDeadlineOffset if MaxRetryDeadlineOffset == 0.
 		MaxRetryDeadlineOffset time.Duration
 	}
 
@@ -110,28 +110,28 @@ type (
 		// BQ write error, prior to giving up. Note that non-retryable errors will immediately stop
 		// and that there is also an upper limit of MaxTotalElpasedRetryTime to execute in worst case these max retries.
 		//
-		// Defaults to DefaultMaxRetries if MaxRetries == 0,
+		// Defaults to constant.DefaultMaxRetries if MaxRetries == 0,
 		// or use MaxRetries < 0 if you want to explicitly disable Retrying.
 		MaxRetries int
 
 		// InitialRetryDelay is the initial time the back off algorithm will wait and which will
 		// be used as the base value to be multiplied for any possible sequential retries.
 		//
-		// Defaults to DefaultInitialRetryDelay if InitialRetryDelay == 0.
+		// Defaults to constant.DefaultInitialRetryDelay if InitialRetryDelay == 0.
 		InitialRetryDelay time.Duration
 
 		// MaxRetryDeadlineOffset is the max amount of time the back off algorithm is allowed to take
 		// for its initial as well as all retry attempts. No retry should be attempted when already over this limit.
 		// This Offset is to be seen as a maximum, which can be stepped over but not by too much.
 		//
-		// Defaults to DefaultMaxRetryDeadlineOffset if MaxRetryDeadlineOffset == 0.
+		// Defaults to constant.DefaultMaxRetryDeadlineOffset if MaxRetryDeadlineOffset == 0.
 		MaxRetryDeadlineOffset time.Duration
 
 		// RetryDelayMultiplier is the retry delay multipler used by the retry
 		// back off algorithm in order to increase the delay in between each sequential write-retry of the
 		// same back off sequence.
 		//
-		// Defaults to DefaultRetryDelayMultiplier if RetryDelayMultiplier < 1, as 2 is also the lowest possible multiplier accepted.
+		// Defaults to constant.DefaultRetryDelayMultiplier if RetryDelayMultiplier < 1, as 2 is also the lowest possible multiplier accepted.
 		RetryDelayMultiplier float64
 	}
 )

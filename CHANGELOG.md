@@ -2,6 +2,20 @@
 
 ## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.4.0) (ETA: 2021-11-01) (TODO)
 
+- refactor code:
+  - all internal code is now found in one of the internal packages,
+    as to have a cleaner codebase and keeping all its definitions explicitly internal;
+  - added internal BQ Storage client, which is a heavily modified fork from
+    <https://github.com/googleapis/google-cloud-go/tree/a2af4de215a42848368ec3081263d34782032caa/bigquery/storage/managedwriter>;
+  - constants are now moved to the `constant` package of this module as to make it very clear
+    within the code that these are constants as well as to allow the ability for both the internal
+    as well as the public root package to make use of it;
+  - the `Logger` interface is moved to its own `log` package for the same reasons as the
+    introduction of the `constant` package;
+- Storage API support (TODO expand);
+
+Other updates made to the repository:
+
 - enforce issue templates in the OTA-Insight/bqwriter GitHub project;
 - add a pull request template in the OTA-Insight/bqwriter GitHub project;
 - rename this file to [CHANGELOG.md](CHANGELOG.md) (was CHANGES.md) in order to better reflect the usual conventions;
