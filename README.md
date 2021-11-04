@@ -193,6 +193,25 @@ To conclude. We currently do not support advanced ways for Authorization, but we
 if there is sufficient interest for it. The [Contributing section](#Contributing) section explains how you can actively
 help to get this supported if desired.
 
+## Instrumentation
+
+We currently support the ability to implement your logger which can be used instead of the standard logger which prints
+to STDERR. It is used for debug statements as well as unhandled errors. Debug statements aren't used everywhere, any unhandled error that isn't propagated is logged using the used logger.
+
+> You can find the interface you would need to implement to support your own Logger at
+> <https://godoc.org/github.com/OTA-Insight/bqwriter/log#Logger>.
+
+Any other instrumentation used for monitoring such as statistics or tags are currently not supported.
+The original experimental storage client of Google supported <https://github.com/census-instrumentation/opencensus-go> out of the box and this support couldn't even be opted out of. Please create a fully detailed and well motivated
+proposal should you find yourself in need of the ability for the library to collect stats.
+
+If it would be supported it would be an opt-in feature which can be enabled by implementing a kind of interface,
+such that this library doesn't have to include any dependency for it and doesn't bind itself to any specific kind
+of monitoring tool. Please include your perspective and theoretical interface as part of your proposal.
+
+We do not have any need for this feature ourselves and thus will only implement it in case there
+is sufficient and well motivated interest for it.
+
 ## Contributing
 
 Contributions are welcome. Please, see the [CONTRIBUTING](/CONTRIBUTING.md) document for details.
