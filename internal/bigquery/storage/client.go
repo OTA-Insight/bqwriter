@@ -101,8 +101,14 @@ func (c *Client) NewManagedStream(ctx context.Context, opts ...WriterOption) (*M
 func (c *Client) buildManagedStream(ctx context.Context, streamFunc streamClientFunc, skipSetup bool, opts ...WriterOption) (*ManagedStream, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
+	settings := defaultStreamSettings()
+	settings.MaxRetries = c.maxRetries
+	settings.InitialRetryDelay = c.initialRetryDelay
+	settings.MaxRetryDeadlineOffset = c.maxRetryDeadlineOffset
+	settings.RetryDelayMultiplier = c.retryDelayMultiplier
+
 	ms := &ManagedStream{
-		streamSettings: defaultStreamSettings(),
+		streamSettings: settings,
 		c:              c.rawClient,
 		ctx:            ctx,
 		cancel:         cancel,
