@@ -12,28 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bqwriter
+package insertall
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/OTA-Insight/bqwriter/constant"
+	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/internal/test"
+	"github.com/OTA-Insight/bqwriter/log"
 )
 
-// subBQInsertAllClient is an in-memory stub client for the bqInsertAllClient interface,
+// stubClient is an in-memory stub client for the bqInsertAllClient interface,
 // allowing us to see what data is written into it
-type subBQInsertAllClient struct {
+type stubClient struct {
 	rows            []interface{}
 	nextErrors      []error
 	sleepPriorToPut time.Duration
 }
 
 // Put implements bqClient::Put
-func (sbqc *subBQInsertAllClient) Put(ctx context.Context, data interface{}) error {
+func (sbqc *stubClient) Put(ctx context.Context, data interface{}) error {
 	if len(sbqc.nextErrors) > 0 {
 		err := sbqc.nextErrors[0]
 		sbqc.nextErrors = sbqc.nextErrors[1:]
@@ -54,7 +58,7 @@ func (sbqc *subBQInsertAllClient) Put(ctx context.Context, data interface{}) err
 }
 
 // Close implements bqClient::Close
-func (sbqc *subBQInsertAllClient) Close() error {
+func (sbqc *stubClient) Close() error {
 	if len(sbqc.nextErrors) > 0 {
 		err := sbqc.nextErrors[0]
 		sbqc.nextErrors = sbqc.nextErrors[1:]
@@ -63,15 +67,15 @@ func (sbqc *subBQInsertAllClient) Close() error {
 	return nil
 }
 
-func (sbqc *subBQInsertAllClient) AddNextError(err error) {
+func (sbqc *stubClient) AddNextError(err error) {
 	sbqc.nextErrors = append(sbqc.nextErrors, err)
 }
 
-func (sbqc *subBQInsertAllClient) SetSleepPriorToPut(d time.Duration) {
+func (sbqc *stubClient) SetSleepPriorToPut(d time.Duration) {
 	sbqc.sleepPriorToPut = d
 }
 
-func (sbqc *subBQInsertAllClient) AssertStringSlice(t *testing.T, expected []string) {
+func (sbqc *stubClient) AssertStringSlice(t *testing.T, expected []string) {
 	got := make([]string, 0, len(sbqc.rows))
 	for _, row := range sbqc.rows {
 		s, ok := row.(string)
@@ -88,62 +92,62 @@ func (sbqc *subBQInsertAllClient) AssertStringSlice(t *testing.T, expected []str
 	}
 }
 
-type TestBQInsertAllThickClientConfig struct {
+type TestClientConfig struct {
 	BatchSize              int
 	MaxRetryDeadlineOffset time.Duration
 }
 
-func newTestBQInsertAllThickClient(t *testing.T, cfg *TestBQInsertAllThickClientConfig) (*subBQInsertAllClient, *bqInsertAllThickClient) {
-	client := new(subBQInsertAllClient)
+func newTestClient(t *testing.T, cfg *TestClientConfig) (*stubClient, *Client) {
+	client := new(stubClient)
 	if cfg == nil {
-		cfg = new(TestBQInsertAllThickClientConfig)
+		cfg = new(TestClientConfig)
 	}
-	retryClient, err := newBQInsertAllThickClient(client, cfg.BatchSize, cfg.MaxRetryDeadlineOffset, stdLogger{})
-	assertNoErrorFatal(t, err)
+	retryClient, err := newClient(client, cfg.BatchSize, cfg.MaxRetryDeadlineOffset, test.Logger{})
+	test.AssertNoErrorFatal(t, err)
 	return client, retryClient
 }
 
 func TestBQInsertAllThickClientDefaultBatchSize(t *testing.T) {
-	_, client := newTestBQInsertAllThickClient(t, nil)
-	assertEqual(t, DefaultBatchSize, client.batchSize)
+	_, client := newTestClient(t, nil)
+	test.AssertEqual(t, constant.DefaultBatchSize, client.batchSize)
 	client.Close()
 }
 
 func TestBQInsertAllThickClientFlushNop(t *testing.T) {
-	_, client := newTestBQInsertAllThickClient(t, nil)
+	_, client := newTestClient(t, nil)
 	defer client.Close()
 	err := client.Flush()
-	assertNoError(t, err)
+	test.AssertNoError(t, err)
 }
 
 func TestBQInsertAllThickClientBatchExhaustBatch(t *testing.T) {
-	stubClient, client := newTestBQInsertAllThickClient(t, &TestBQInsertAllThickClientConfig{
+	stubClient, client := newTestClient(t, &TestClientConfig{
 		BatchSize: 2,
 	})
 	defer stubClient.Close()
 
 	flushed, err := client.Put("hello")
-	assertNoError(t, err)
-	assertEqual(t, false, flushed)
+	test.AssertNoError(t, err)
+	test.AssertFalse(t, flushed)
 	stubClient.AssertStringSlice(t, []string{})
 
 	flushed, err = client.Put("world")
-	assertNoError(t, err)
-	assertEqual(t, true, flushed)
+	test.AssertNoError(t, err)
+	test.AssertTrue(t, flushed)
 	stubClient.AssertStringSlice(t, []string{"hello", "world"})
 
 	flushed, err = client.Put("!")
-	assertNoError(t, err)
-	assertEqual(t, false, flushed)
+	test.AssertNoError(t, err)
+	test.AssertFalse(t, flushed)
 	stubClient.AssertStringSlice(t, []string{"hello", "world"})
 
 	err = client.Flush()
-	assertNoError(t, err)
+	test.AssertNoError(t, err)
 	stubClient.AssertStringSlice(t, []string{"hello", "world", "!"})
 }
 
 func TestBQInsertAllThickClientFlushMaxDeadlineExhausted(t *testing.T) {
-	stubClient, client := newTestBQInsertAllThickClient(t, &TestBQInsertAllThickClientConfig{
+	stubClient, client := newTestClient(t, &TestClientConfig{
 		BatchSize:              1,
 		MaxRetryDeadlineOffset: time.Millisecond * 100,
 	})
@@ -151,21 +155,21 @@ func TestBQInsertAllThickClientFlushMaxDeadlineExhausted(t *testing.T) {
 	stubClient.SetSleepPriorToPut(time.Millisecond * 200)
 
 	flushed, err := client.Put("hello")
-	assertError(t, err)
-	assertEqual(t, true, flushed)
-	assertEqual(t, true, errors.Is(err, context.DeadlineExceeded))
+	test.AssertError(t, err)
+	test.AssertTrue(t, flushed)
+	test.AssertIsError(t, err, context.DeadlineExceeded)
 }
 
 func TestNewBQInsertAllThickClientWithNilClient(t *testing.T) {
-	client, err := newBQInsertAllThickClient(nil, 0, 0, stdLogger{})
-	assertError(t, err)
-	assertNil(t, client)
+	client, err := newClient(nil, 0, 0, test.Logger{})
+	test.AssertError(t, err)
+	test.AssertNil(t, client)
 }
 
 func TestNewBQInsertAllThickClientWithNilLogger(t *testing.T) {
-	client, err := newBQInsertAllThickClient(new(subBQInsertAllClient), 0, 0, nil)
-	assertError(t, err)
-	assertNil(t, client)
+	client, err := newClient(new(stubClient), 0, 0, nil)
+	test.AssertError(t, err)
+	test.AssertNil(t, client)
 }
 
 func TestNewStdBQInsertAllThickClientInputErrors(t *testing.T) {
@@ -184,32 +188,32 @@ func TestNewStdBQInsertAllThickClientInputErrors(t *testing.T) {
 		{"", "a", "b"},
 	}
 	for _, testCase := range testCases {
-		client, err := newStdBQInsertAllThickClient(
+		client, err := NewClient(
 			testCase.ProjectID, testCase.DataSetID, testCase.TableID,
 			false, false, 0, 0,
-			stdLogger{},
+			test.Logger{},
 		)
-		assertError(t, err)
-		assertEqual(t, true, errors.Is(err, invalidParamErr))
-		assertNil(t, client)
+		test.AssertError(t, err)
+		test.AssertIsError(t, err, internal.InvalidParamErr)
+		test.AssertNil(t, client)
 	}
 }
 
 func TestNewBQInsertAllThickClientErrors(t *testing.T) {
 	testCases := []struct {
-		Client bqInsertAllClient
-		Logger Logger
+		Client bqClient
+		Logger log.Logger
 	}{
 		{nil, nil},
-		{new(subBQInsertAllClient), nil},
-		{nil, testLogger{}},
+		{new(stubClient), nil},
+		{nil, test.Logger{}},
 	}
 	for _, testCase := range testCases {
-		client, err := newBQInsertAllThickClient(
+		client, err := newClient(
 			testCase.Client, 0, 0, testCase.Logger,
 		)
-		assertError(t, err)
-		assertEqual(t, true, errors.Is(err, invalidParamErr))
-		assertNil(t, client)
+		test.AssertError(t, err)
+		test.AssertIsError(t, err, internal.InvalidParamErr)
+		test.AssertNil(t, client)
 	}
 }

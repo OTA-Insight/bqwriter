@@ -17,6 +17,11 @@ package bqwriter
 import (
 	"testing"
 	"time"
+
+	"github.com/OTA-Insight/bqwriter/constant"
+	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/internal/test"
+	"github.com/OTA-Insight/bqwriter/log"
 )
 
 func deepCloneStreamerConfig(cfg *StreamerConfig) *StreamerConfig {
@@ -38,21 +43,21 @@ func deepCloneStreamerConfig(cfg *StreamerConfig) *StreamerConfig {
 
 var (
 	expectedDefaultStreamerConfig = StreamerConfig{
-		WorkerCount:     DefaultWorkerCount,
-		WorkerQueueSize: DefaultWorkerQueueSize,
-		MaxBatchDelay:   DefaultMaxBatchDelay,
-		Logger:          stdLogger{},
+		WorkerCount:     constant.DefaultWorkerCount,
+		WorkerQueueSize: constant.DefaultWorkerQueueSize,
+		MaxBatchDelay:   constant.DefaultMaxBatchDelay,
+		Logger:          internal.Logger{},
 		InsertAllClient: &InsertAllClientConfig{
-			BatchSize:              DefaultBatchSize,
-			MaxRetryDeadlineOffset: DefaultMaxRetryDeadlineOffset,
+			BatchSize:              constant.DefaultBatchSize,
+			MaxRetryDeadlineOffset: constant.DefaultMaxRetryDeadlineOffset,
 		},
 	}
 
 	expecredDefaultStorageClient = StorageClientConfig{
-		MaxRetries:             DefaultMaxRetries,
-		InitialRetryDelay:      DefaultInitialRetryDelay,
-		MaxRetryDeadlineOffset: DefaultMaxRetryDeadlineOffset,
-		RetryDelayMultiplier:   DefaultRetryDelayMultiplier,
+		MaxRetries:             constant.DefaultMaxRetries,
+		InitialRetryDelay:      constant.DefaultInitialRetryDelay,
+		MaxRetryDeadlineOffset: constant.DefaultMaxRetryDeadlineOffset,
+		RetryDelayMultiplier:   constant.DefaultRetryDelayMultiplier,
 	}
 )
 
@@ -60,20 +65,20 @@ func assertStreamerConfig(t *testing.T, inputCfg *StreamerConfig, expectedOuputC
 	// deep clone input param so that we can really test if we do not mutate our variables
 	inputPassedCfg := deepCloneStreamerConfig(inputCfg)
 	if inputCfg == nil {
-		assertNil(t, inputPassedCfg)
+		test.AssertNil(t, inputPassedCfg)
 	} else {
-		assertNotEqualShallow(t, inputPassedCfg, inputCfg)
+		test.AssertNotEqualShallow(t, inputPassedCfg, inputCfg)
 		// insertAll client is either nil in output or it should be a different pointer
 		if inputCfg.InsertAllClient == nil {
-			assertNil(t, inputCfg.InsertAllClient)
+			test.AssertNil(t, inputCfg.InsertAllClient)
 		} else {
-			assertNotEqualShallow(t, inputPassedCfg.InsertAllClient, inputCfg.InsertAllClient)
+			test.AssertNotEqualShallow(t, inputPassedCfg.InsertAllClient, inputCfg.InsertAllClient)
 		}
 		// storage client is either nil in output or it should be a different pointer
 		if inputCfg.StorageClient == nil {
-			assertNil(t, inputCfg.StorageClient)
+			test.AssertNil(t, inputCfg.StorageClient)
 		} else {
-			assertNotEqualShallow(t, inputPassedCfg.StorageClient, inputCfg.StorageClient)
+			test.AssertNotEqualShallow(t, inputPassedCfg.StorageClient, inputCfg.StorageClient)
 		}
 	}
 
@@ -81,27 +86,27 @@ func assertStreamerConfig(t *testing.T, inputCfg *StreamerConfig, expectedOuputC
 	outputCfg := sanitizeStreamerConfig(inputPassedCfg)
 
 	// ensure a new pointer is returned
-	assertNotEqualShallow(t, inputPassedCfg, outputCfg)
+	test.AssertNotEqualShallow(t, inputPassedCfg, outputCfg)
 	if inputPassedCfg != nil {
 		// also ensure our child cfgs are either nil or other pointers
-		assertNotEqualShallow(t, inputPassedCfg.InsertAllClient, outputCfg.InsertAllClient)
+		test.AssertNotEqualShallow(t, inputPassedCfg.InsertAllClient, outputCfg.InsertAllClient)
 		// storage client is either nil in output or it should be a different pointer
 		if inputPassedCfg.StorageClient == nil {
-			assertNil(t, outputCfg.StorageClient)
+			test.AssertNil(t, outputCfg.StorageClient)
 		} else {
-			assertNotEqualShallow(t, inputPassedCfg.StorageClient, outputCfg.StorageClient)
+			test.AssertNotEqualShallow(t, inputPassedCfg.StorageClient, outputCfg.StorageClient)
 		}
 	}
 
 	// ensure that our output is as expected
-	assertEqual(t, outputCfg.StorageClient, expectedOuputCfg.StorageClient)
+	test.AssertEqual(t, outputCfg.StorageClient, expectedOuputCfg.StorageClient)
 	// overwrite so our global deep equal check also passes
 	outputCfg.StorageClient = expectedOuputCfg.StorageClient
-	assertEqual(t, outputCfg.InsertAllClient, expectedOuputCfg.InsertAllClient)
+	test.AssertEqual(t, outputCfg.InsertAllClient, expectedOuputCfg.InsertAllClient)
 	// overwrite so our global deep equal check also passes
 	outputCfg.InsertAllClient = expectedOuputCfg.InsertAllClient
 	// final global deep equal
-	assertEqual(t, outputCfg, expectedOuputCfg)
+	test.AssertEqual(t, outputCfg, expectedOuputCfg)
 }
 
 func TestSanitizeStreamerConfigFullDefault(t *testing.T) {
@@ -135,8 +140,8 @@ func TestSanitizeStreamerConfigSharedDefaults(t *testing.T) {
 		InputMaxBatchDelay    time.Duration
 		ExpectedMaxBatchDelay time.Duration
 
-		InputLogger    Logger
-		ExpectedLogger Logger
+		InputLogger    log.Logger
+		ExpectedLogger log.Logger
 	}{
 		// full default
 		{
@@ -217,8 +222,8 @@ func TestSanitizeStreamerConfigSharedDefaults(t *testing.T) {
 			ExpectedWorkerCount:     expectedDefaultStreamerConfig.WorkerCount,
 			ExpectedWorkerQueueSize: expectedDefaultStreamerConfig.WorkerQueueSize,
 			ExpectedMaxBatchDelay:   expectedDefaultStreamerConfig.MaxBatchDelay,
-			InputLogger:             testLogger{},
-			ExpectedLogger:          testLogger{},
+			InputLogger:             test.Logger{},
+			ExpectedLogger:          test.Logger{},
 		},
 	}
 	for _, testCase := range testCases {
@@ -520,10 +525,3 @@ func TestSanitizeStreamerConfigStorageDefaults(t *testing.T) {
 		assertStreamerConfig(t, inputCfg, expectedOutputCfg)
 	}
 }
-
-type testLogger struct{}
-
-func (testLogger) Debug(_args ...interface{})                    {}
-func (testLogger) Debugf(_template string, _args ...interface{}) {}
-func (testLogger) Error(_args ...interface{})                    {}
-func (testLogger) Errorf(_template string, _args ...interface{}) {}

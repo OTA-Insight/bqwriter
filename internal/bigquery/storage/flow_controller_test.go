@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/OTA-Insight/bqwriter/internal/test"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -32,36 +33,25 @@ func TestFlowControllerCancel(t *testing.T) {
 	t.Parallel()
 	wantInsertBytes := 10
 	fc := newFlowController(3, wantInsertBytes)
-	if fc.maxInsertBytes != 10 {
-		t.Fatalf("maxInsertBytes mismatch, got %d want %d", fc.maxInsertBytes, wantInsertBytes)
-	}
-	if err := fc.acquire(context.Background(), 5); err != nil {
-		t.Fatal(err)
-	}
+	test.AssertEqual(t, 10, fc.maxInsertBytes)
+	test.AssertNoError(t, fc.acquire(context.Background(), 5))
 	// Experiment: a context that times out should always return an error.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
 	defer cancel()
-	if err := fc.acquire(ctx, 6); !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("got %v, expected DeadlineExceeded", err)
-	}
+	test.AssertIsError(t, fc.acquire(ctx, 6), context.DeadlineExceeded)
 	// Control: a context that is not done should always return nil.
 	go func() {
 		time.Sleep(5 * time.Millisecond)
 		fc.release(5)
 	}()
-	if err := fc.acquire(context.Background(), 6); err != nil {
-		t.Errorf("got %v, expected nil", err)
-	}
+	test.AssertNoError(t, fc.acquire(context.Background(), 6))
 }
 
 func TestFlowControllerLargeRequest(t *testing.T) {
 	// Large requests succeed, consuming the entire allotment.
 	t.Parallel()
 	fc := newFlowController(3, 10)
-	err := fc.acquire(context.Background(), 11)
-	if err != nil {
-		t.Fatal(err)
-	}
+	test.AssertNoError(t, fc.acquire(context.Background(), 11))
 }
 
 func TestFlowControllerNoStarve(t *testing.T) {
@@ -90,9 +80,7 @@ func TestFlowControllerNoStarve(t *testing.T) {
 		}()
 	}
 	<-first // Wait until the flowController's state is non-zero.
-	if err := fc.acquire(ctx, 11); err != nil {
-		t.Errorf("got %v, want nil", err)
-	}
+	test.AssertNoError(t, fc.acquire(ctx, 11))
 }
 
 func TestFlowControllerSaturation(t *testing.T) {
@@ -101,7 +89,7 @@ func TestFlowControllerSaturation(t *testing.T) {
 		maxCount = 6
 		maxSize  = 10
 	)
-	for _, test := range []struct {
+	for _, testCase := range []struct {
 		acquireSize         int
 		wantCount, wantSize int64
 	}{
@@ -147,36 +135,33 @@ func TestFlowControllerSaturation(t *testing.T) {
 						return ctx.Err()
 					default:
 					}
-					if err := fc.acquire(ctx, test.acquireSize); err != nil {
+					if err := fc.acquire(ctx, testCase.acquireSize); err != nil {
 						return err
 					}
 					c := int64(fc.count())
-					if c > test.wantCount {
-						return fmt.Errorf("count %d exceeds want %d", c, test.wantCount)
+					if c > testCase.wantCount {
+						return fmt.Errorf("count %d exceeds want %d", c, testCase.wantCount)
 					}
-					if c == test.wantCount {
+					if c == testCase.wantCount {
 						hitCount = true
 					}
-					s := atomic.AddInt64(&curSize, int64(test.acquireSize))
-					if s > test.wantSize {
-						return fmt.Errorf("size %d exceeds want %d", s, test.wantSize)
+					s := atomic.AddInt64(&curSize, int64(testCase.acquireSize))
+					if s > testCase.wantSize {
+						return fmt.Errorf("size %d exceeds want %d", s, testCase.wantSize)
 					}
-					if s == test.wantSize {
+					if s == testCase.wantSize {
 						hitSize = true
 					}
 					time.Sleep(5 * time.Millisecond) // Let other goroutines make progress.
-					if atomic.AddInt64(&curSize, -int64(test.acquireSize)) < 0 {
+					if atomic.AddInt64(&curSize, -int64(testCase.acquireSize)) < 0 {
 						return errors.New("negative size")
 					}
-					fc.release(test.acquireSize)
+					fc.release(testCase.acquireSize)
 				}
 				return success
 			})
 		}
-		if err := g.Wait(); !errors.Is(err, success) {
-			t.Errorf("%+v: %v", test, err)
-			continue
-		}
+		test.AssertIsError(t, g.Wait(), success)
 	}
 }
 
@@ -185,19 +170,13 @@ func TestFlowControllerTryAcquire(t *testing.T) {
 	fc := newFlowController(3, 10)
 
 	// Successfully tryAcquire 4 bytes.
-	if !fc.tryAcquire(4) {
-		t.Error("got false, wanted true")
-	}
+	test.AssertTrue(t, fc.tryAcquire(4))
 
 	// Fail to tryAcquire 7 bytes.
-	if fc.tryAcquire(7) {
-		t.Error("got true, wanted false")
-	}
+	test.AssertFalse(t, fc.tryAcquire(7))
 
 	// Successfully tryAcquire 6 byte.
-	if !fc.tryAcquire(6) {
-		t.Error("got false, wanted true")
-	}
+	test.AssertTrue(t, fc.tryAcquire(6))
 }
 
 func TestFlowControllerUnboundedCount(t *testing.T) {
@@ -206,19 +185,13 @@ func TestFlowControllerUnboundedCount(t *testing.T) {
 	fc := newFlowController(0, 10)
 
 	// Successfully acquire 4 bytes.
-	if err := fc.acquire(ctx, 4); err != nil {
-		t.Errorf("got %v, wanted no error", err)
-	}
+	test.AssertNoError(t, fc.acquire(ctx, 4))
 
 	// Successfully tryAcquire 4 bytes.
-	if !fc.tryAcquire(4) {
-		t.Error("got false, wanted true")
-	}
+	test.AssertTrue(t, fc.tryAcquire(4))
 
 	// Fail to tryAcquire 3 bytes.
-	if fc.tryAcquire(3) {
-		t.Error("got true, wanted false")
-	}
+	test.AssertFalse(t, fc.tryAcquire(3))
 }
 
 func TestFlowControllerUnboundedCount2(t *testing.T) {
@@ -226,15 +199,11 @@ func TestFlowControllerUnboundedCount2(t *testing.T) {
 	ctx := context.Background()
 	fc := newFlowController(0, 0)
 	// Successfully acquire 4 bytes.
-	if err := fc.acquire(ctx, 4); err != nil {
-		t.Errorf("got %v, wanted no error", err)
-	}
+	test.AssertNoError(t, fc.acquire(ctx, 4))
 	fc.release(1)
 	fc.release(1)
 	fc.release(1)
-	if c, wantCount := int64(fc.count()), int64(-2); c != wantCount {
-		t.Fatalf("got count %d, want %d", c, wantCount)
-	}
+	test.AssertEqual(t, int64(-2), int64(fc.count()))
 }
 
 func TestFlowControllerUnboundedBytes(t *testing.T) {
@@ -243,17 +212,11 @@ func TestFlowControllerUnboundedBytes(t *testing.T) {
 	fc := newFlowController(2, 0)
 
 	// Successfully acquire 4GB.
-	if err := fc.acquire(ctx, 4e9); err != nil {
-		t.Errorf("got %v, wanted no error", err)
-	}
+	test.AssertNoError(t, fc.acquire(ctx, 4e9))
 
 	// Successfully tryAcquire 4GB bytes.
-	if !fc.tryAcquire(4e9) {
-		t.Error("got false, wanted true")
-	}
+	test.AssertTrue(t, fc.tryAcquire(4e9))
 
 	// Fail to tryAcquire a third message.
-	if fc.tryAcquire(3) {
-		t.Error("got true, wanted false")
-	}
+	test.AssertFalse(t, fc.tryAcquire(3))
 }

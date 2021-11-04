@@ -14,7 +14,13 @@
 
 package bqwriter
 
-import "time"
+import (
+	"time"
+
+	"github.com/OTA-Insight/bqwriter/constant"
+	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/log"
+)
 
 type (
 	// StreamerConfig is used to build a Streamer (client).
@@ -48,7 +54,7 @@ type (
 		// Logger allows you to attach a logger to be used by the streamer,
 		// instead of the default built-in STDERR logging implementation,
 		// with the latter being used as the default in case this logger isn't defined explicitly.
-		Logger Logger
+		Logger log.Logger
 
 		// InsertAllClient allows you to overwrite any or all of the defaults used to configure an
 		// InsertAll client API driven Streamer Client. Note that this optional configuration is ignored
@@ -150,7 +156,7 @@ func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig) {
 	if cfg.WorkerCount < 0 {
 		sanCfg.WorkerCount = 1
 	} else if cfg.WorkerCount == 0 {
-		sanCfg.WorkerCount = DefaultWorkerCount
+		sanCfg.WorkerCount = constant.DefaultWorkerCount
 	} else {
 		sanCfg.WorkerCount = cfg.WorkerCount
 	}
@@ -170,7 +176,7 @@ func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig) {
 			// storage API is a true streamer,
 			// and thus uses a hardcoded queue (channel buffer) size
 			// per worker instead.
-			sanCfg.WorkerQueueSize = DefaultWorkerQueueSize
+			sanCfg.WorkerQueueSize = constant.DefaultWorkerQueueSize
 		}
 	} else {
 		sanCfg.WorkerQueueSize = cfg.WorkerQueueSize
@@ -179,14 +185,14 @@ func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig) {
 	// an insanely low value of `1` can be used to check constantly
 	// if rows can be written. And while this is possible, it is not recommended.
 	if cfg.MaxBatchDelay == 0 {
-		sanCfg.MaxBatchDelay = DefaultMaxBatchDelay
+		sanCfg.MaxBatchDelay = constant.DefaultMaxBatchDelay
 	} else {
 		sanCfg.MaxBatchDelay = cfg.MaxBatchDelay
 	}
 
 	// use default logger if none was defined
 	if cfg.Logger == nil {
-		sanCfg.Logger = stdLogger{}
+		sanCfg.Logger = internal.Logger{}
 	} else {
 		sanCfg.Logger = cfg.Logger
 	}
@@ -224,7 +230,7 @@ func sanitizeInsertAllClientConfig(cfg *InsertAllClientConfig) (sanCfg *InsertAl
 	if cfg.BatchSize < 0 {
 		sanCfg.BatchSize = 1
 	} else if cfg.BatchSize == 0 {
-		sanCfg.BatchSize = DefaultBatchSize
+		sanCfg.BatchSize = constant.DefaultBatchSize
 	} else {
 		sanCfg.BatchSize = cfg.BatchSize
 	}
@@ -233,7 +239,7 @@ func sanitizeInsertAllClientConfig(cfg *InsertAllClientConfig) (sanCfg *InsertAl
 	// and cannot be disabled. It is either the by this Go package defined default,
 	// or else its value is respected as-is, with once again no upper limit.
 	if cfg.MaxRetryDeadlineOffset == 0 {
-		sanCfg.MaxRetryDeadlineOffset = DefaultMaxRetryDeadlineOffset
+		sanCfg.MaxRetryDeadlineOffset = constant.DefaultMaxRetryDeadlineOffset
 	} else {
 		sanCfg.MaxRetryDeadlineOffset = cfg.MaxRetryDeadlineOffset
 	}
@@ -266,7 +272,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	if cfg.MaxRetries < 0 {
 		sanCfg.MaxRetries = 0
 	} else if cfg.MaxRetries == 0 {
-		sanCfg.MaxRetries = DefaultMaxRetries
+		sanCfg.MaxRetries = constant.DefaultMaxRetries
 	} else {
 		sanCfg.MaxRetries = cfg.MaxRetries
 	}
@@ -275,7 +281,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	// and cannot be disabled. It is either the by this Go package defined default,
 	// or else its value is respected as-is, with once again no upper limit.
 	if cfg.InitialRetryDelay == 0 {
-		sanCfg.InitialRetryDelay = DefaultInitialRetryDelay
+		sanCfg.InitialRetryDelay = constant.DefaultInitialRetryDelay
 	} else {
 		sanCfg.InitialRetryDelay = cfg.InitialRetryDelay
 	}
@@ -284,7 +290,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	// and cannot be disabled. It is either the by this Go package defined default,
 	// or else its value is respected as-is, with once again no upper limit.
 	if cfg.MaxRetryDeadlineOffset == 0 {
-		sanCfg.MaxRetryDeadlineOffset = DefaultMaxRetryDeadlineOffset
+		sanCfg.MaxRetryDeadlineOffset = constant.DefaultMaxRetryDeadlineOffset
 	} else {
 		sanCfg.MaxRetryDeadlineOffset = cfg.MaxRetryDeadlineOffset
 	}
@@ -294,7 +300,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	// value in the partially exlusive `]0, currentRetryDelay]` range. While this jitter might
 	// be counter intuitive, it turns out from empirical evidence in the wild that this works surprisingly well.
 	if cfg.RetryDelayMultiplier <= 1 {
-		sanCfg.RetryDelayMultiplier = DefaultRetryDelayMultiplier
+		sanCfg.RetryDelayMultiplier = constant.DefaultRetryDelayMultiplier
 	} else {
 		sanCfg.RetryDelayMultiplier = cfg.RetryDelayMultiplier
 	}

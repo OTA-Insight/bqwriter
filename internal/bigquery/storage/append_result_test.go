@@ -17,22 +17,20 @@
 package storage
 
 import (
-	"bytes"
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/OTA-Insight/bqwriter/internal/test"
 )
 
 func TestAppendResult(t *testing.T) {
 	wantRowBytes := [][]byte{[]byte("rowdata")}
 
 	gotAR := newAppendResult(wantRowBytes)
-	if len(gotAR.rowData) != len(wantRowBytes) {
-		t.Fatalf("length mismatch, got %d want %d elements", len(gotAR.rowData), len(wantRowBytes))
-	}
-	for i := 0; i < len(gotAR.rowData); i++ {
-		if !bytes.Equal(gotAR.rowData[i], wantRowBytes[i]) {
-			t.Errorf("mismatch in row data %d, got %q want %q", i, gotAR.rowData, wantRowBytes)
+	if test.AssertEqual(t, len(gotAR.rowData), len(wantRowBytes)) {
+		for i := 0; i < len(gotAR.rowData); i++ {
+			test.AssertBytesEqual(t, gotAR.rowData[i], wantRowBytes[i])
 		}
 	}
 }
@@ -48,46 +46,30 @@ func TestPendingWrite(t *testing.T) {
 
 	// first, verify no offset behavior
 	pending := newPendingWrite(wantRowData, NoStreamOffset)
-	if pending.request.GetOffset() != nil {
-		t.Errorf("request should have no offset, but is present: %q", pending.request.GetOffset().GetValue())
-	}
+	test.AssertNil(t, pending.request.GetOffset())
 	pending.markDone(NoStreamOffset, nil, nil)
-	if pending.result.offset != NoStreamOffset {
-		t.Errorf("mismatch on completed AppendResult without offset: got %d want %d", pending.result.offset, NoStreamOffset)
-	}
-	if pending.result.err != nil {
-		t.Errorf("mismatch in error on AppendResult, got %v want nil", pending.result.err)
-	}
+	test.AssertEqual(t, pending.result.offset, NoStreamOffset)
+	test.AssertNoError(t, pending.result.err)
 
 	// now, verify behavior with a valid offset
 	pending = newPendingWrite(wantRowData, 99)
-	if pending.request.GetOffset() == nil {
-		t.Errorf("offset not set, should be %d", wantOffset)
-	}
-	if gotOffset := pending.request.GetOffset().GetValue(); gotOffset != wantOffset {
-		t.Errorf("offset mismatch, got %d want %d", gotOffset, wantOffset)
+	if test.AssertNotNil(t, pending.request.GetOffset()) {
+		test.AssertEqual(t, pending.request.GetOffset().GetValue(), wantOffset)
 	}
 
 	// check request shape
-	gotRowCount := len(pending.request.GetProtoRows().GetRows().GetSerializedRows())
-	if gotRowCount != len(wantRowData) {
-		t.Errorf("pendingWrite request mismatch, got %d rows, want %d rows", gotRowCount, len(wantRowData))
-	}
+	test.AssertEqual(t, len(pending.request.GetProtoRows().GetRows().GetSerializedRows()), len(wantRowData))
 
 	// verify AppendResult
 
 	gotData := pending.result.rowData
-	if len(gotData) != len(wantRowData) {
-		t.Errorf("length mismatch on appendresult, got %d, want %d", len(gotData), len(wantRowData))
-	}
+	test.AssertEqual(t, len(gotData), len(wantRowData))
 	for i := 0; i < len(gotData); i++ {
-		if !bytes.Equal(gotData[i], wantRowData[i]) {
-			t.Errorf("row %d mismatch in data: got %q want %q", i, gotData[i], wantRowData[i])
-		}
+		test.AssertBytesEqual(t, gotData[i], wantRowData[i])
 	}
 	select {
 	case <-pending.result.Ready():
-		t.Errorf("got Ready() on incomplete AppendResult")
+		t.Error("got Ready() on incomplete AppendResult")
 	case <-time.After(100 * time.Millisecond):
 		// pass
 	}
@@ -97,22 +79,17 @@ func TestPendingWrite(t *testing.T) {
 	wantErr := errors.New("foo")
 	pending.markDone(reportedOffset, wantErr, nil)
 
-	if pending.request != nil {
-		t.Errorf("expected request to be cleared, is present: %#v", pending.request)
-	}
+	test.AssertNil(t, pending.request)
 	gotData = pending.result.rowData
-	if len(gotData) != len(wantRowData) {
-		t.Errorf("length mismatch in data: got %d, want %d", len(gotData), len(wantRowData))
-	}
-	for i := 0; i < len(gotData); i++ {
-		if !bytes.Equal(gotData[i], wantRowData[i]) {
-			t.Errorf("row %d mismatch in data: got %q want %q", i, gotData[i], wantRowData[i])
+	if test.AssertEqual(t, len(gotData), len(wantRowData)) {
+		for i := 0; i < len(gotData); i++ {
+			test.AssertBytesEqual(t, gotData[i], wantRowData[i])
 		}
 	}
 
 	select {
 	case <-time.After(100 * time.Millisecond):
-		t.Errorf("possible blocking on completed AppendResult")
+		t.Error("possible blocking on completed AppendResult")
 	case <-pending.result.Ready():
 		if pending.result.offset != reportedOffset {
 			t.Errorf("mismatch on completed AppendResult offset: got %d want %d", pending.result.offset, reportedOffset)

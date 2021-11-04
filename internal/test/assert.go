@@ -15,49 +15,139 @@
 package test
 
 import (
+	"bytes"
+	"errors"
 	"reflect"
+	"runtime/debug"
 	"testing"
 )
 
-func AssertError(t *testing.T, err error) {
+func errorf(t *testing.T, format string, args ...interface{}) {
+	args = append(args, debug.Stack())
+	t.Errorf(format+"\n\nstack:\n>>>>>>>>>>>>>>>>>>>>>\n%s\n<<<<<<<<<<<<<<<<<<<<<\n", args...)
+}
+
+func AssertError(t *testing.T, err error) bool {
 	if err == nil {
-		t.Error("no error returned while one is expected")
+		errorf(t, "no error returned while one is expected")
+		return true
 	}
+	return false
 }
 
-func AssertNoError(t *testing.T, err error) {
+func AssertIsError(t *testing.T, err error, target error) bool {
+	if !errors.Is(err, target) {
+		errorf(t, "expected error %v (%T) to be %v (%T)", err, err, target, target)
+		return false
+	}
+	return true
+}
+
+func AssertNoError(t *testing.T, err error) bool {
 	if err != nil {
-		t.Errorf("no error expected while one is returned: %v", err)
+		errorf(t, "no error expected while one is returned: %v", err)
+		return false
 	}
+	return true
 }
 
-func AssertNoErrorFatal(t *testing.T, err error) {
+func AssertIsNotError(t *testing.T, err error, target error) bool {
+	if errors.Is(err, target) {
+		errorf(t, "expected error %v (%T) to not be %v (%T)", err, err, target, target)
+		return false
+	}
+	return true
+}
+
+func AssertNoErrorFatal(t *testing.T, err error) bool {
 	if err != nil {
 		t.Fatalf("no error expected while one is returned: %v", err)
+		return false
 	}
+	return true
 }
 
-func AssertEqual(t *testing.T, a, b interface{}) {
+func AssertEqual(t *testing.T, a, b interface{}) bool {
 	if !reflect.DeepEqual(a, b) {
-		t.Errorf("expected %v == %v", a, b)
+		errorf(t, "expected %v == %v", a, b)
+		return false
 	}
+	return true
 }
 
-func AssertNotEqualShallow(t *testing.T, a, b interface{}) {
+func AssertNotEqual(t *testing.T, a, b interface{}) bool {
+	if reflect.DeepEqual(a, b) {
+		errorf(t, "expected %v != %v", a, b)
+		return false
+	}
+	return true
+}
+
+func AssertTrue(t *testing.T, b bool) bool {
+	if !b {
+		errorf(t, "epected %v to be true", b)
+		return false
+	}
+	return true
+}
+
+func AssertFalse(t *testing.T, b bool) bool {
+	if b {
+		errorf(t, "epected %v to be false", b)
+		return false
+	}
+	return true
+}
+
+func AssertBytesEqual(t *testing.T, a, b []byte) bool {
+	if !bytes.Equal(a, b) {
+		errorf(t, "expected %x == %x", a, b)
+		return false
+	}
+	return true
+}
+
+func AssertBytesNotEqual(t *testing.T, a, b []byte) bool {
+	if bytes.Equal(a, b) {
+		errorf(t, "expected %x != %x", a, b)
+		return false
+	}
+	return true
+}
+
+func AssertNotEqualShallow(t *testing.T, a, b interface{}) bool {
 	if a == b {
-		t.Errorf("expected (shallow) %v != %v", a, b)
+		errorf(t, "expected (shallow) %v != %v", a, b)
+		return false
 	}
+	return true
 }
 
-func AssertNil(t *testing.T, a interface{}) {
+func isNil(a interface{}) bool {
 	if a == nil {
-		return
+		return true
 	}
 	switch reflect.TypeOf(a).Kind() {
 	case reflect.Ptr, reflect.Map, reflect.Array, reflect.Chan, reflect.Slice:
 		if reflect.ValueOf(a).IsNil() {
-			return
+			return true
 		}
 	}
-	t.Errorf("expected %v to be nil", a)
+	return false
+}
+
+func AssertNil(t *testing.T, a interface{}) bool {
+	if !isNil(a) {
+		errorf(t, "expected %v to be nil", a)
+		return false
+	}
+	return true
+}
+
+func AssertNotNil(t *testing.T, a interface{}) bool {
+	if isNil(a) {
+		errorf(t, "expected %v not to be nil", a)
+		return false
+	}
+	return true
 }

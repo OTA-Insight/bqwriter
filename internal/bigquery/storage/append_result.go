@@ -53,6 +53,16 @@ func newAppendResult(data [][]byte) *AppendResult {
 // which may be a successful append or an error.
 func (ar *AppendResult) Ready() <-chan struct{} { return ar.ready }
 
+func (ar *AppendResult) MarkReady() {
+	select {
+	case <-ar.Ready():
+		return // already closed
+	default:
+		// close only once
+		close(ar.ready)
+	}
+}
+
 // GetResult returns the optional offset of this row, or the associated
 // error.  It blocks until the result is ready.
 func (ar *AppendResult) GetResult(ctx context.Context) (int64, error) {
@@ -107,7 +117,7 @@ func newPendingWrite(appends [][]byte, offset int64) *pendingWrite {
 func (pw *pendingWrite) markDone(startOffset int64, err error, fc *flowController) {
 	pw.result.err = err
 	pw.result.offset = startOffset
-	close(pw.result.ready)
+	pw.result.MarkReady()
 	// Clear the reference to the request.
 	pw.request = nil
 	// if there's a flow controller, signal release.  The only time this should be nil is when

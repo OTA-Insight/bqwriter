@@ -12,9 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bqwriter
+package internal
 
 import "errors"
 
-// testStaticErr is an error used for testing purposes only
-var testStaticErr = errors.New("static test error")
+var (
+	// internal error used in case an input parameter was invalid.
+	InvalidParamErr = errors.New("invalid parameter")
+
+	// internal error used in case a feature still in development was already used.
+	NotSupportedErr = errors.New("not supported")
+)

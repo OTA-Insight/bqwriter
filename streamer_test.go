@@ -16,12 +16,15 @@ package bqwriter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/internal/test"
+	"github.com/OTA-Insight/bqwriter/log"
 )
 
 func TestNewStreamerInputErrors(t *testing.T) {
@@ -45,9 +48,9 @@ func TestNewStreamerInputErrors(t *testing.T) {
 			testCase.ProjectID, testCase.DataSetID, testCase.TableID,
 			nil,
 		)
-		assertError(t, err)
-		assertEqual(t, true, errors.Is(err, invalidParamErr))
-		assertNil(t, builder)
+		test.AssertError(t, err)
+		test.AssertIsError(t, err, internal.InvalidParamErr)
+		test.AssertNil(t, builder)
 	}
 }
 
@@ -118,7 +121,7 @@ func (sbqc *stubBQClient) SubscribeToPutSignal(ch chan<- struct{}) {
 }
 
 func (sbqc *stubBQClient) AssertFlushCount(t *testing.T, expected int) {
-	assertEqual(t, sbqc.flushCount, expected)
+	test.AssertEqual(t, sbqc.flushCount, expected)
 }
 
 func (sbqc *stubBQClient) AssertStringSlice(t *testing.T, expected []string) {
@@ -167,7 +170,7 @@ type testStreamerConfig struct {
 func newTestStreamer(ctx context.Context, t *testing.T, cfg testStreamerConfig) (*stubBQClient, *Streamer) {
 	client := new(stubBQClient)
 	// always use same client for our purposes
-	clientBuilder := func(ctx context.Context, projectID, dataSetID, tableID string, logger Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
+	clientBuilder := func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
 		return client, nil
 	}
 	streamer, err := newStreamerWithClientBuilder(
@@ -179,7 +182,7 @@ func newTestStreamer(ctx context.Context, t *testing.T, cfg testStreamerConfig) 
 			MaxBatchDelay:   cfg.MaxBatchDelay,
 		},
 	)
-	assertNoErrorFatal(t, err)
+	test.AssertNoErrorFatal(t, err)
 	return client, streamer
 }
 
@@ -189,8 +192,8 @@ func TestStreamerFlowStandard(t *testing.T) {
 	putSignalCh := make(chan struct{}, 1)
 	client.SubscribeToPutSignal(putSignalCh)
 
-	assertNoError(t, streamer.Write("hello"))
-	assertNoError(t, streamer.Write("world"))
+	test.AssertNoError(t, streamer.Write("hello"))
+	test.AssertNoError(t, streamer.Write("world"))
 	<-putSignalCh
 	<-putSignalCh
 
@@ -201,20 +204,20 @@ func TestStreamerFlowStandard(t *testing.T) {
 func TestStreamerWriteErrorAlreadyClosed(t *testing.T) {
 	_, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
 	streamer.Close()
-	assertError(t, streamer.Write("hello"))
+	test.AssertError(t, streamer.Write("hello"))
 }
 
 func TestStreamerWriteErrorNilData(t *testing.T) {
 	_, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
 	defer streamer.Close()
 	err := streamer.Write(nil)
-	assertError(t, err)
-	assertEqual(t, true, errors.Is(err, invalidParamErr))
+	test.AssertError(t, err)
+	test.AssertIsError(t, err, internal.InvalidParamErr)
 }
 
 func TestStreamerCloseError(t *testing.T) {
 	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
-	client.AddNextError(fmt.Errorf("some client close error: %w", testStaticErr))
+	client.AddNextError(fmt.Errorf("some client close error: %w", test.StaticErr))
 	streamer.Close()
 	// this is logged to stderr, so should be okay for user
 }

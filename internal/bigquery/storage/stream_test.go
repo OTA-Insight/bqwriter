@@ -19,6 +19,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/OTA-Insight/bqwriter/internal/test"
+
 	storagepb "google.golang.org/genproto/googleapis/cloud/bigquery/storage/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -68,19 +70,17 @@ func TestManagedStream_OpenWithRetry(t *testing.T) {
 			},
 		}
 		arc, ch, err := ms.openWithRetry()
-		if tc.wantFail && err == nil {
-			t.Errorf("case %s: wanted failure, got success", tc.desc)
+		if tc.wantFail {
+			test.AssertError(t, err)
+		} else {
+			test.AssertNoError(t, err)
 		}
 		if !tc.wantFail && err != nil {
 			t.Errorf("case %s: wanted success, got %v", tc.desc, err)
 		}
 		if err == nil {
-			if arc == nil {
-				t.Errorf("case %s: expected append client, got nil", tc.desc)
-			}
-			if ch == nil {
-				t.Errorf("case %s: expected channel, got nil", tc.desc)
-			}
+			test.AssertNotNil(t, arc)
+			test.AssertNotNil(t, ch)
 		}
 	}
 }
@@ -126,43 +126,22 @@ func TestManagedStream_FirstAppendBehavior(t *testing.T) {
 
 	for i := 0; i < wantReqs; i++ {
 		_, err := ms.AppendRows(ctx, fakeData, NoStreamOffset)
-		if err != nil {
-			t.Errorf("AppendRows; %v", err)
-		}
+		test.AssertNoError(t, err)
 	}
 
-	if testARC.openCount != 1 {
-		t.Errorf("expected a single open, got %d", testARC.openCount)
-	}
-
-	if len(testARC.requests) != wantReqs {
-		t.Errorf("expected %d requests, got %d", wantReqs, len(testARC.requests))
-	}
+	test.AssertEqual(t, 1, testARC.openCount)
+	test.AssertEqual(t, wantReqs, len(testARC.requests))
 
 	for k, v := range testARC.requests {
-		if v == nil {
-			t.Errorf("request %d was nil", k)
-		}
+		test.AssertNotNil(t, v)
 		if k == 0 {
-			if v.GetTraceId() == "" {
-				t.Errorf("expected TraceId on first request, was empty")
-			}
-			if v.GetWriteStream() == "" {
-				t.Errorf("expected WriteStream on first request, was empty")
-			}
-			if v.GetProtoRows().GetWriterSchema().GetProtoDescriptor() == nil {
-				t.Errorf("expected WriterSchema on first request, was empty")
-			}
+			test.AssertNotEqual(t, "", v.GetTraceId())
+			test.AssertNotEqual(t, "", v.GetWriteStream())
+			test.AssertNotNil(t, v.GetProtoRows().GetWriterSchema().GetProtoDescriptor())
 		} else {
-			if v.GetTraceId() != "" {
-				t.Errorf("expected no TraceID on request %d, got %s", k, v.GetTraceId())
-			}
-			if v.GetWriteStream() != "" {
-				t.Errorf("expected no WriteStream on request %d, got %s", k, v.GetWriteStream())
-			}
-			if v.GetProtoRows().GetWriterSchema().GetProtoDescriptor() != nil {
-				t.Errorf("expected test WriterSchema on request %d, got %s", k, v.GetProtoRows().GetWriterSchema().GetProtoDescriptor().String())
-			}
+			test.AssertEqual(t, "", v.GetTraceId())
+			test.AssertEqual(t, "", v.GetWriteStream())
+			test.AssertNil(t, v.GetProtoRows().GetWriterSchema().GetProtoDescriptor())
 		}
 	}
 }

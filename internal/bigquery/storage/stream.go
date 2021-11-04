@@ -250,10 +250,12 @@ func (ms *ManagedStream) append(pw *pendingWrite, opts ...gax.CallOption) error 
 			ms.err = err
 			ms.mu.Unlock()
 		}
-		if err == nil {
-			ch <- pw
+		if err != nil {
+			return fmt.Errorf("BQStorage: ManagedStream: append: %w", err)
 		}
-		return fmt.Errorf("BQStorage: ManagedStream: append: %w", err)
+
+		ch <- pw
+		return nil
 	}
 }
 
@@ -294,6 +296,7 @@ func (ms *ManagedStream) AppendRows(ctx context.Context, data [][]byte, offset i
 	if err := ms.fc.acquire(ctx, pw.reqSize); err != nil {
 		// in this case, we didn't acquire, so don't pass the flow controller reference to avoid a release.
 		pw.markDone(NoStreamOffset, err, nil)
+		return nil, err
 	}
 	// proceed to call
 	if err := ms.append(pw); err != nil {

@@ -22,12 +22,16 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery/insertall"
+	"github.com/OTA-Insight/bqwriter/log"
 )
 
 // Streamer is a simple BQ stream-writer, allowing you
 // write data to a BQ table concurrently.
 type Streamer struct {
-	logger Logger
+	logger log.Logger
 
 	workerWg       sync.WaitGroup
 	workerCh       chan streamerJob
@@ -48,35 +52,39 @@ type streamerJob struct {
 func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
 	return newStreamerWithClientBuilder(
 		ctx,
-		func(ctx context.Context, projectID, dataSetID, tableID string, logger Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
+		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
 			if storageCfg != nil {
-				return nil, fmt.Errorf("create new streamer: using storage client: %w", notSupportedErr)
+				return nil, fmt.Errorf("create new streamer: using storage client: %w", internal.NotSupportedErr)
 			}
 
-			return newStdBQInsertAllThickClient(
+			client, err := insertall.NewClient(
 				projectID, dataSetID, tableID,
 				!insertAllCfg.FailOnInvalidRows,
 				!insertAllCfg.FailForUnknownValues,
 				insertAllCfg.BatchSize, insertAllCfg.MaxRetryDeadlineOffset,
 				logger,
 			)
+			if err != nil {
+				return nil, fmt.Errorf("NewStreamer: New InsertAll client: %w", err)
+			}
+			return client, nil
 		},
 		projectID, dataSetID, tableID,
 		cfg,
 	)
 }
 
-type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID string, logger Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error)
+type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error)
 
 func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuilderFunc, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
 	if projectID == "" {
-		return nil, fmt.Errorf("streamer client creation: validate projectID: %w: missing", invalidParamErr)
+		return nil, fmt.Errorf("streamer client creation: validate projectID: %w: missing", internal.InvalidParamErr)
 	}
 	if dataSetID == "" {
-		return nil, fmt.Errorf("streamer client creation: validate dataSetID: %w: missing", invalidParamErr)
+		return nil, fmt.Errorf("streamer client creation: validate dataSetID: %w: missing", internal.InvalidParamErr)
 	}
 	if tableID == "" {
-		return nil, fmt.Errorf("streamer client creation: validate tableID: %w: missing", invalidParamErr)
+		return nil, fmt.Errorf("streamer client creation: validate tableID: %w: missing", internal.InvalidParamErr)
 	}
 
 	// sanitize cfg
@@ -129,7 +137,7 @@ func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuild
 // configured to do so.
 func (s *Streamer) Write(data interface{}) error {
 	if data == nil {
-		return fmt.Errorf("streamer client write: validate data: %w: nil data", invalidParamErr)
+		return fmt.Errorf("streamer client write: validate data: %w: nil data", internal.InvalidParamErr)
 	}
 	job := streamerJob{
 		Data: data,
