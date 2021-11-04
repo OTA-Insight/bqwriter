@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/OTA-Insight/bqwriter/internal"
 
@@ -38,11 +39,17 @@ type streamClientFunc func(context.Context, ...gax.CallOption) (storagepb.BigQue
 // Client is a managed BigQuery Storage write client scoped to a single project.
 type Client struct {
 	rawClient *storage.BigQueryWriteClient
+
 	projectID string
+
+	maxRetries             int
+	initialRetryDelay      time.Duration
+	maxRetryDeadlineOffset time.Duration
+	retryDelayMultiplier   float64
 }
 
 // NewClient instantiates a new client.
-func NewClient(ctx context.Context, projectID string, opts ...option.ClientOption) (c *Client, err error) {
+func NewClient(ctx context.Context, projectID string, maxRetries int, initialRetryDelay time.Duration, maxRetryDeadlineOffset time.Duration, retryDelayMultiplier float64, opts ...option.ClientOption) (c *Client, err error) {
 	if projectID == "" {
 		return nil, fmt.Errorf("BQ: Storage: NewClient: projectID not defined: %w", internal.InvalidParamErr)
 	}
@@ -62,7 +69,13 @@ func NewClient(ctx context.Context, projectID string, opts ...option.ClientOptio
 
 	return &Client{
 		rawClient: rawClient,
+
 		projectID: projectID,
+
+		maxRetries:             maxRetries,
+		initialRetryDelay:      initialRetryDelay,
+		maxRetryDeadlineOffset: maxRetryDeadlineOffset,
+		retryDelayMultiplier:   retryDelayMultiplier,
 	}, nil
 }
 

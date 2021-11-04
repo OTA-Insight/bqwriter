@@ -21,8 +21,11 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	bqStorage "cloud.google.com/go/bigquery/storage/apiv1"
+	"github.com/OTA-Insight/bqwriter/constant"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery"
 	"github.com/googleapis/gax-go"
 	storagepb "google.golang.org/genproto/googleapis/cloud/bigquery/storage/v1"
 	grpcstatus "google.golang.org/grpc/status"
@@ -50,12 +53,8 @@ type ManagedStream struct {
 	streamSetup *sync.Once                                // handles amending the first request in a new stream
 }
 
-// enables testing
-// type streamClientFunc func(context.Context, ...gax.CallOption) (storagepb.BigQueryWrite_AppendRowsClient, error)
-
 // streamSettings govern behavior of the append stream RPCs.
 type streamSettings struct {
-
 	// streamID contains the reference to the destination stream.
 	streamID string
 
@@ -78,6 +77,13 @@ type streamSettings struct {
 	// dataOrigin can be set for classifying metrics generated
 	// by a stream.
 	dataOrigin string
+
+	// all related to back off algorithm
+
+	MaxRetries             int
+	InitialRetryDelay      time.Duration
+	MaxRetryDeadlineOffset time.Duration
+	RetryDelayMultiplier   float64
 }
 
 func defaultStreamSettings() *streamSettings {
@@ -86,6 +92,11 @@ func defaultStreamSettings() *streamSettings {
 		MaxInflightRequests: 1000,
 		MaxInflightBytes:    0,
 		TraceID:             "",
+
+		MaxRetries:             constant.DefaultMaxRetries,
+		InitialRetryDelay:      constant.DefaultInitialRetryDelay,
+		MaxRetryDeadlineOffset: constant.DefaultMaxRetryDeadlineOffset,
+		RetryDelayMultiplier:   constant.DefaultRetryDelayMultiplier,
 	}
 }
 
@@ -161,7 +172,7 @@ func (ms *ManagedStream) getStream(arc *storagepb.BigQueryWrite_AppendRowsClient
 //
 // Only getStream() should call this, and thus the calling code has the mutex lock.
 func (ms *ManagedStream) openWithRetry() (storagepb.BigQueryWrite_AppendRowsClient, chan *pendingWrite, error) {
-	r := defaultRetryer{}
+	r := ms.newGaxRetryer()
 	for {
 		// recordStat(ms.ctx, AppendClientOpenCount, 1)
 		streamID := ""
@@ -196,9 +207,11 @@ func (ms *ManagedStream) append(pw *pendingWrite, opts ...gax.CallOption) error 
 	for _, opt := range opts {
 		opt.Resolve(&settings)
 	}
-	var r gax.Retryer = &defaultRetryer{}
+	var r gax.Retryer
 	if settings.Retry != nil {
 		r = settings.Retry()
+	} else {
+		r = ms.newGaxRetryer()
 	}
 
 	var arc *storagepb.BigQueryWrite_AppendRowsClient
@@ -305,6 +318,28 @@ func (ms *ManagedStream) AppendRows(ctx context.Context, data [][]byte, offset i
 		return nil, err
 	}
 	return pw.result, nil
+}
+
+func (ms *ManagedStream) newGaxRetryer() gax.Retryer {
+	if ms.streamSettings == nil {
+		return bigquery.NewRetryer(
+			ms.ctx,
+			constant.DefaultMaxRetries,
+			constant.DefaultInitialRetryDelay,
+			constant.DefaultMaxRetryDeadlineOffset,
+			constant.DefaultRetryDelayMultiplier,
+			bigquery.GRPCRetryErrorFilter,
+		)
+	}
+	// all values have received their sane defaults already in Storage Client Config
+	return bigquery.NewRetryer(
+		ms.ctx,
+		ms.streamSettings.MaxRetries,
+		ms.streamSettings.InitialRetryDelay,
+		ms.streamSettings.MaxRetryDeadlineOffset,
+		ms.streamSettings.RetryDelayMultiplier,
+		bigquery.GRPCRetryErrorFilter,
+	)
 }
 
 // recvProcessor is used to propagate append responses back up with the originating write requests in a goroutine.

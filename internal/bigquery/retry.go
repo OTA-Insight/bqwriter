@@ -42,7 +42,7 @@ type Retryer struct {
 // compile-time interface compliance
 var _ gax.Retryer = (*Retryer)(nil)
 
-func newBQRetryer(ctx context.Context, maxRetries int, initialRetryDelay time.Duration, maxRetryDeadlineOffset time.Duration, retryDelayMultiplier float64, errorFilter func(error) bool) *Retryer {
+func NewRetryer(ctx context.Context, maxRetries int, initialRetryDelay time.Duration, maxRetryDeadlineOffset time.Duration, retryDelayMultiplier float64, errorFilter func(error) bool) *Retryer {
 	startTime := time.Now()
 	deadlineCtx, cancelDeadlineCtx := context.WithDeadline(ctx, startTime.Add(maxRetryDeadlineOffset))
 	return &Retryer{
@@ -112,7 +112,7 @@ func (r *Retryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
 	return r.backoff.Pause(), true
 }
 
-// bqRestAPIRetryErrorFilter used to be defined based on HTTP Codes 500 and 503.
+// GRPCRetryErrorFilter used to be defined based on HTTP Codes 500 and 503.
 // It turns out however that the actual BQ Insert All client cannot be configured in terms
 // of Retryability, and instead these values are hardcoded. Its RetryError filter is also a lot more advanced
 // than this
@@ -121,7 +121,7 @@ func (r *Retryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
 
 // bqGRPCRetryErrorFilter returns a Retry error filter to be used
 // for retrying GRPC Google API operations (e.g. BQ Storage client)
-func bqGRPCRetryErrorFilter(err error) bool {
+func GRPCRetryErrorFilter(err error) bool {
 	st, ok := status.FromError(err)
 	if !ok {
 		return false

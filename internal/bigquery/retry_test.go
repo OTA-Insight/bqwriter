@@ -29,7 +29,7 @@ import (
 )
 
 func TestBQRetryerRetryOpFlowFailure(t *testing.T) {
-	retryer := newBQRetryer(
+	retryer := NewRetryer(
 		context.Background(),
 		constant.DefaultMaxRetries,
 		1*time.Millisecond,
@@ -58,7 +58,7 @@ func TestBQRetryerRetryOpFlowFailure(t *testing.T) {
 }
 
 func TestBQRetryerRetryOpFlowSuccess(t *testing.T) {
-	retryer := newBQRetryer(
+	retryer := NewRetryer(
 		context.Background(),
 		constant.DefaultMaxRetries,
 		1*time.Millisecond,
@@ -85,7 +85,7 @@ func TestBQRetryerRetryOpFlowSuccess(t *testing.T) {
 }
 
 func TestBQRetryerNoRetryBecauseOfNilError(t *testing.T) {
-	retryer := newBQRetryer(
+	retryer := NewRetryer(
 		context.Background(),
 		constant.DefaultMaxRetries,
 		constant.DefaultInitialRetryDelay,
@@ -101,7 +101,7 @@ func TestBQRetryerNoRetryBecauseOfNilError(t *testing.T) {
 func TestBQRetryerNoRetryBecauseOfCanceledContext(t *testing.T) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	cancelFunc()
-	retryer := newBQRetryer(
+	retryer := NewRetryer(
 		ctx,
 		constant.DefaultMaxRetries,
 		constant.DefaultInitialRetryDelay,
@@ -115,7 +115,7 @@ func TestBQRetryerNoRetryBecauseOfCanceledContext(t *testing.T) {
 }
 
 func TestBQRetryerNoRetryBecauseOfMaxRetries(t *testing.T) {
-	retryer := newBQRetryer(
+	retryer := NewRetryer(
 		context.Background(),
 		1, // retry max 1 time
 		constant.DefaultInitialRetryDelay,
@@ -138,7 +138,7 @@ func TestBQRetryerNoRetryBecauseOfMaxRetries(t *testing.T) {
 }
 
 func TestBQRetryerNoRetryBecauseOfErrorFilter(t *testing.T) {
-	retryer := newBQRetryer(
+	retryer := NewRetryer(
 		context.Background(),
 		constant.DefaultMaxRetries,
 		constant.DefaultInitialRetryDelay,
@@ -171,16 +171,16 @@ func TestBQGRPCRetryErrorFilterTrue(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		err := status.New(testCase, "test error").Err()
-		test.AssertTrue(t, bqGRPCRetryErrorFilter(err))
+		test.AssertTrue(t, GRPCRetryErrorFilter(err))
 	}
 }
 
 func TestBQGRPCRetryErrorFilterFalse(t *testing.T) {
 	// nil error is not an accepted error
-	test.AssertFalse(t, bqGRPCRetryErrorFilter(nil))
+	test.AssertFalse(t, GRPCRetryErrorFilter(nil))
 	// custom error is not an accepted error
-	test.AssertFalse(t, bqGRPCRetryErrorFilter(fmt.Errorf("todo: %w", test.StaticErr)))
+	test.AssertFalse(t, GRPCRetryErrorFilter(fmt.Errorf("todo: %w", test.StaticErr)))
 	// correct error, but wrong code
 	err := status.New(codes.Aborted, "test error").Err()
-	test.AssertFalse(t, bqGRPCRetryErrorFilter(err))
+	test.AssertFalse(t, GRPCRetryErrorFilter(err))
 }
