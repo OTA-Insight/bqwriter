@@ -30,7 +30,7 @@ NOTE: This package is under development, and may occasionally make backwards-inc
 
 ## Go Versions Supported
 
-We currently support Go versions 1.13 and newer.
+We currently support Go versions 1.15 and newer.
 
 ## Examples
 

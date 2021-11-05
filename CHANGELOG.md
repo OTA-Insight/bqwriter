@@ -16,7 +16,13 @@
     as well as the public root package to make use of it;
   - the `Logger` interface is moved to its own `log` package for the same reasons as the
     introduction of the `constant` package;
-- Storage API support (TODO expand);
+- adds initial StorageAPI Support:
+    - Only using the default stream is supported. CommittedStream and/or PendingStream
+      can be supported upon request;
+- bump min Go version supported to Go 1.15, as we make use of the `time.Ticket.Reset` functionality
+  which is only available sine Go 1.15:
+    - Note this feature isn't critical so if ever required for a good reason,
+      we can probably work around it and downgrade the min Go version once again;
 
 Other updates made to the repository:
 
