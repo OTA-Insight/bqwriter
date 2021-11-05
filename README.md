@@ -169,7 +169,72 @@ bqWriter.Write(&myRow{Timestamp: time.UTC().Now(), Username: "test"})
 
 ### Storage Streamer
 
-TODO
+```go
+import (
+    "context"
+
+    "github.com/OTA-Insight/bqwriter"
+
+    // TODO: define actual path to pre-compiled protobuf Go code
+    "path/to/my/proto/package/protodata"
+)
+
+// TODO: use more specific context
+ctx := context.Background()
+
+// create a BQ (stream) writer thread-safe client,
+bqWriter, err := bqwriter.NewStreamer(
+    ctx,
+    "my-gcloud-project",
+    "my-bq-dataset",
+    "my-bq-table",
+    &bqwriter.StreamerConfig{
+        // use 5 background worker threads
+        WorkerCount: 5,
+        // ignore errors for invalid/unknown rows/values,
+        // by default these errors make a write fail
+        StorageClient: &bqwriter.StorageClientConfig{
+            ProtobufDescriptor: (&protodata.MyCustomProtoMessage{}).ProtoReflect().Descriptor(),
+        },
+    },
+)
+)
+if err != nil {
+    // TODO: handle error gracefully
+    panic(err)
+}
+// do not forget to close, to close all background resources opened
+// when creating the BQ (stream) writer client
+defer bqWriter.Close()
+
+// TOOD: populate fields of the proto message
+msg := new(protodata.MyCustomProtoMessage)
+
+// You can now start writing data to your BQ table
+bqWriter.Write(msg)
+// NOTE: only write one row at a time using `(*Streamer).Write`,
+// multiple rows can be written using one `Write` call per row.
+```
+
+You must define the `StorageClientConfig`, as demonstrated in previous example,
+in order to be create a Streamer client using the Storage API.
+Note that you cannot create a blank `StorageClientConfig` or any kind of default,
+as you are required to configure it with either a `bigquery.Schema` or a `descriptorpb.DescriptorProto`,
+with the latter being preferred and used of the first.
+
+The schema or Protobuf descriptor are used to be able to encode the data prior to writing
+in the correct format as Protobuf encoded binary data.
+
+- `BigQuerySchema` can be used in order to use a data encoder for the StorageClient
+  based on a dynamically defined BigQuery schema in order to be able to encode any struct,
+  JsonMarshaler, Json-encoded byte slice, Stringer (text proto) or string (also text proto)
+  as a valid protobuf message based on the given BigQuery Schema;
+- `ProtobufDescriptor` can be used in order to use a data encoder for the StorageClient
+  based on a pre-compiled protobuf schema in order to be able to encode any proto Message
+  adhering to this descriptor;
+
+`ProtobufDescriptor` is preferred as you might have to pay a performance penalty
+should you want to use the `BigQuerySchema` instead.
 
 ## Authorization
 
