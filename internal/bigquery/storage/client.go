@@ -17,6 +17,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/OTA-Insight/bqwriter/internal"
@@ -25,6 +26,13 @@ import (
 	"github.com/OTA-Insight/bqwriter/log"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
+
+// TODO (if desired by someone):
+// - support ComittedStream: it is similar to the DefaultStream,
+//   but also allows offset tracking as a dedicated stream is created for it;
+// - support PendingStream: here no data is made visible until made explicitly,
+//   which we could allow by for example finalizing a stream after x delay or y rows,
+//   and creating a new stream after that;
 
 // Client implements the standard/official BQ (cloud) Client,
 // using the regular insertAll API with retry logic added on top of that. By default
@@ -37,6 +45,9 @@ type Client struct {
 	encoder encoding.Encoder
 
 	ctx context.Context
+
+	wg             sync.WaitGroup
+	appendResultCh chan *managedwriter.AppendResult
 
 	logger log.Logger
 }
@@ -93,13 +104,27 @@ func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, d
 		}
 		return nil, fmt.Errorf("BQ Storage Client creation: create managed writer: %w", err)
 	}
-	return &Client{
-		client:  writer,
-		stream:  stream,
-		encoder: encoder,
-		ctx:     ctx,
-		logger:  logger,
-	}, nil
+
+	// create storage client
+	client := &Client{
+		client:         writer,
+		stream:         stream,
+		encoder:        encoder,
+		ctx:            ctx,
+		appendResultCh: make(chan *managedwriter.AppendResult, 1),
+		logger:         logger,
+	}
+
+	// spawn a worker goroutine,
+	// in order to check the append results in the background
+	client.wg.Add(1)
+	go func() {
+		defer client.wg.Done()
+		client.checkAppendResultsAsync()
+	}()
+
+	// return the client, successfully created
+	return client, nil
 }
 
 // Put implements bigquery.Client::Put
@@ -109,17 +134,63 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 		return false, fmt.Errorf("BQ Storage Client: Put Data: encode data: %w", err)
 	}
 
-	// TODO: do something with result
-	//
 	// NOTE: we do not define an offset here,
 	// as it would only be useful in case we want to do
-	// diagnostics with them
-	_, err = bqc.stream.AppendRows(bqc.ctx, binaryData, managedwriter.NoStreamOffset)
+	// diagnostics with them. Once we would support CommittedStream than
+	// we do want to use the offset for tracking purposes.
+	result, err := bqc.stream.AppendRows(bqc.ctx, binaryData, managedwriter.NoStreamOffset)
 	if err != nil {
 		return false, fmt.Errorf("BQ Storage Client: Stream: AppendRows: %w", err)
 	}
+	bqc.appendResultCh <- result
+	// we flush every time we write data,
+	// as the default stream commits immediately
+	return true, nil
+}
 
-	return false, nil
+func (bqc *Client) checkAppendResultsAsync() {
+	var results []*managedwriter.AppendResult
+	defer func() {
+		for _, result := range results {
+			select {
+			case <-result.Ready():
+				_, err := result.GetResult(context.Background())
+				if err != nil {
+					bqc.logger.Errorf("exit checkAppendResultsAsync: ready append resulted in error: %v", err)
+				}
+			default:
+				bqc.logger.Debug("append result not yet ready: checkAppendResultsAsync exited anyway")
+			}
+		}
+	}()
+	for {
+		select {
+		case <-bqc.ctx.Done():
+			return
+
+		case result, ok := <-bqc.appendResultCh:
+			if !ok {
+				return
+			}
+			results = append(results, result)
+			// go through all results, and filter out the ready ones
+			n := 0
+			for _, result := range results {
+				select {
+				case <-result.Ready():
+					_, err := result.GetResult(context.Background())
+					if err != nil {
+						bqc.logger.Errorf("ready append resulted in error: %v", err)
+					}
+				default:
+					// keep result until next time
+					results[n] = result
+					n++
+				}
+			}
+			results = results[:n]
+		}
+	}
 }
 
 // Flush implements bigquery.Client::Flush
@@ -136,5 +207,14 @@ func (bqc *Client) Close() error {
 	if err := bqc.client.Close(); err != nil {
 		return fmt.Errorf("close BQ storage client: close internal storage writer client: %w", err)
 	}
+	func() {
+		defer func() {
+			if panicErr := recover(); panicErr != nil {
+				bqc.logger.Errorf("close BQ storage client: close internal append result ch: %v", panicErr)
+			}
+		}()
+		close(bqc.appendResultCh)
+	}()
+	bqc.wg.Wait()
 	return nil
 }

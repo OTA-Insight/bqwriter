@@ -7,6 +7,10 @@
     as to have a cleaner codebase and keeping all its definitions explicitly internal;
   - added internal BQ Storage client, which is a heavily modified fork from
     <https://github.com/googleapis/google-cloud-go/tree/a2af4de215a42848368ec3081263d34782032caa/bigquery/storage/managedwriter>;
+    - the fork is only meant to be as long as required, it is desired to switch to the upstream
+      managed writer as soon as possible;
+    - Only using the default stream is supported. CommittedStream and/or PendingStream
+      can be supported upon request;
   - constants are now moved to the `constant` package of this module as to make it very clear
     within the code that these are constants as well as to allow the ability for both the internal
     as well as the public root package to make use of it;
