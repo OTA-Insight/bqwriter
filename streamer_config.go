@@ -14,7 +14,16 @@
 
 package bqwriter
 
-import "time"
+import (
+	"errors"
+	"time"
+
+	"cloud.google.com/go/bigquery"
+	"github.com/OTA-Insight/bqwriter/constant"
+	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/log"
+	"google.golang.org/protobuf/types/descriptorpb"
+)
 
 type (
 	// StreamerConfig is used to build a Streamer (client).
@@ -26,7 +35,7 @@ type (
 		// each on their own goroutine and with an opt-out channel buffer per routine.
 		// Use a negative value in order to just want a single worker (same as defining it as 1 explicitly).
 		//
-		// Defaults to DefaultWorkerCount if not defined explicitly.
+		// Defaults to constant.DefaultWorkerCount if not defined explicitly.
 		WorkerCount int
 
 		// WorkerQueueSize defines the size of the job queue per worker used
@@ -36,19 +45,19 @@ type (
 		// Use a negative value in order to provide no buffer for the workers at all,
 		// not rcommended but a possibility for you to choose non the less.
 		//
-		// Defaults to MaxTotalElapsedRetryTime if not defined explicitly
+		// Defaults to constant.MaxTotalElapsedRetryTime if not defined explicitly
 		WorkerQueueSize int
 
 		// MaxBatchDelay defines the max amount of time a worker batches rows,
 		// prior to writing the batched rows, even when not yet full.
 		//
-		// Defaults to DefaultMaxBatchDelay if d == 0.
+		// Defaults to constant.DefaultMaxBatchDelay if d == 0.
 		MaxBatchDelay time.Duration
 
 		// Logger allows you to attach a logger to be used by the streamer,
 		// instead of the default built-in STDERR logging implementation,
 		// with the latter being used as the default in case this logger isn't defined explicitly.
-		Logger Logger
+		Logger log.Logger
 
 		// InsertAllClient allows you to overwrite any or all of the defaults used to configure an
 		// InsertAll client API driven Streamer Client. Note that this optional configuration is ignored
@@ -81,7 +90,7 @@ type (
 		// actually writing it to BQ. Should a worker have rows left in its local cache when closing,
 		// it will flush/write these rows prior to closing.
 		//
-		// Defaults to DefaultBatchSize if n == 0,
+		// Defaults to constant.DefaultBatchSize if n == 0,
 		// use a negative value or an explicit value of 1
 		// in case you want to write each row directly.
 		BatchSize int
@@ -90,7 +99,7 @@ type (
 		// for its initial as well as all retry attempts. No retry should be attempted when already over this limit.
 		// This Offset is to be seen as a maximum, which can be stepped over but not by too much.
 		//
-		// Defaults to DefaultMaxRetryDeadlineOffset if MaxRetryDeadlineOffset == 0.
+		// Defaults to constant.DefaultMaxRetryDeadlineOffset if MaxRetryDeadlineOffset == 0.
 		MaxRetryDeadlineOffset time.Duration
 	}
 
@@ -100,32 +109,51 @@ type (
 	// A non-nil StorageClientConfig instance has to be passed in to the StorageClient property of
 	// a StreamerConfig in order to indicate the Streamer should be build using the Storage API Client under the hood.
 	StorageClientConfig struct {
+		// BigQuerySchema can be used in order to use a data encoder for the StorageClient
+		// based on a dynamically defined BigQuery schema in order to be able to encode any struct,
+		// JsonMarshaler, Json-encoded byte slice, Stringer (text proto) or string (also text proto)
+		// as a valid protobuf message based on the given BigQuery Schema.
+		//
+		// This config is required only if ProtobufDescriptor is not defined
+		// and it will be ignored in case ProtobufDescriptor is defined. The latter is recommended
+		// as a BigQuery Schema based encoder has a possible performance penalty.
+		BigQuerySchema *bigquery.Schema
+
+		// ProtobufDescriptor can be used in order to use a data encoder for the StorageClient
+		// based on a pre-compiled protobuf schema in order to be able to encode any proto Message
+		// adhering to this descriptor.
+		//
+		// This config is required only if BigQuerySchema is not defined.
+		// It is however recommended to use the The ProtobufDescriptor
+		// as a BigQuerySchema based encoder has a possible performance penalty.
+		ProtobufDescriptor *descriptorpb.DescriptorProto
+
 		// MaxRetries is the max amount of times that the retry logic will retry a retryable
 		// BQ write error, prior to giving up. Note that non-retryable errors will immediately stop
 		// and that there is also an upper limit of MaxTotalElpasedRetryTime to execute in worst case these max retries.
 		//
-		// Defaults to DefaultMaxRetries if MaxRetries == 0,
+		// Defaults to constant.DefaultMaxRetries if MaxRetries == 0,
 		// or use MaxRetries < 0 if you want to explicitly disable Retrying.
 		MaxRetries int
 
 		// InitialRetryDelay is the initial time the back off algorithm will wait and which will
 		// be used as the base value to be multiplied for any possible sequential retries.
 		//
-		// Defaults to DefaultInitialRetryDelay if InitialRetryDelay == 0.
+		// Defaults to constant.DefaultInitialRetryDelay if InitialRetryDelay == 0.
 		InitialRetryDelay time.Duration
 
 		// MaxRetryDeadlineOffset is the max amount of time the back off algorithm is allowed to take
 		// for its initial as well as all retry attempts. No retry should be attempted when already over this limit.
 		// This Offset is to be seen as a maximum, which can be stepped over but not by too much.
 		//
-		// Defaults to DefaultMaxRetryDeadlineOffset if MaxRetryDeadlineOffset == 0.
+		// Defaults to constant.DefaultMaxRetryDeadlineOffset if MaxRetryDeadlineOffset == 0.
 		MaxRetryDeadlineOffset time.Duration
 
 		// RetryDelayMultiplier is the retry delay multipler used by the retry
 		// back off algorithm in order to increase the delay in between each sequential write-retry of the
 		// same back off sequence.
 		//
-		// Defaults to DefaultRetryDelayMultiplier if RetryDelayMultiplier < 1, as 2 is also the lowest possible multiplier accepted.
+		// Defaults to constant.DefaultRetryDelayMultiplier if RetryDelayMultiplier < 1, as 2 is also the lowest possible multiplier accepted.
 		RetryDelayMultiplier float64
 	}
 )
@@ -133,7 +161,7 @@ type (
 // sanitizeStreamerConfig is used to fill in some or all properties
 // with sane default values for the StreamerConfig.
 // Defined as a function to keep its logic contained and well tested.
-func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig) {
+func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig, err error) {
 	// we want to create a new config, as to not mutate an input param (the cfg),
 	// this comes at the cost of allocating extra memory, but as this is only expected
 	// to be used at setup time it should be ok, the memory gods will forgive us I'm sure
@@ -150,7 +178,7 @@ func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig) {
 	if cfg.WorkerCount < 0 {
 		sanCfg.WorkerCount = 1
 	} else if cfg.WorkerCount == 0 {
-		sanCfg.WorkerCount = DefaultWorkerCount
+		sanCfg.WorkerCount = constant.DefaultWorkerCount
 	} else {
 		sanCfg.WorkerCount = cfg.WorkerCount
 	}
@@ -170,7 +198,7 @@ func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig) {
 			// storage API is a true streamer,
 			// and thus uses a hardcoded queue (channel buffer) size
 			// per worker instead.
-			sanCfg.WorkerQueueSize = DefaultWorkerQueueSize
+			sanCfg.WorkerQueueSize = constant.DefaultWorkerQueueSize
 		}
 	} else {
 		sanCfg.WorkerQueueSize = cfg.WorkerQueueSize
@@ -179,24 +207,27 @@ func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig) {
 	// an insanely low value of `1` can be used to check constantly
 	// if rows can be written. And while this is possible, it is not recommended.
 	if cfg.MaxBatchDelay == 0 {
-		sanCfg.MaxBatchDelay = DefaultMaxBatchDelay
+		sanCfg.MaxBatchDelay = constant.DefaultMaxBatchDelay
 	} else {
 		sanCfg.MaxBatchDelay = cfg.MaxBatchDelay
 	}
 
 	// use default logger if none was defined
 	if cfg.Logger == nil {
-		sanCfg.Logger = stdLogger{}
+		sanCfg.Logger = internal.Logger{}
 	} else {
 		sanCfg.Logger = cfg.Logger
 	}
 
 	// only sanitize the Storage (client) Config if it is actually defined
 	// otherwise nil will be returned
-	sanCfg.StorageClient = sanitizeStorageClientConfig(cfg.StorageClient)
+	sanCfg.StorageClient, err = sanitizeStorageClientConfig(cfg.StorageClient)
+	if err != nil {
+		return nil, err
+	}
 
 	// return the sanitized named output config
-	return sanCfg
+	return sanCfg, nil
 }
 
 // sanitizeInsertAllClientConfig is used to fill in some or all properties
@@ -224,7 +255,7 @@ func sanitizeInsertAllClientConfig(cfg *InsertAllClientConfig) (sanCfg *InsertAl
 	if cfg.BatchSize < 0 {
 		sanCfg.BatchSize = 1
 	} else if cfg.BatchSize == 0 {
-		sanCfg.BatchSize = DefaultBatchSize
+		sanCfg.BatchSize = constant.DefaultBatchSize
 	} else {
 		sanCfg.BatchSize = cfg.BatchSize
 	}
@@ -233,7 +264,7 @@ func sanitizeInsertAllClientConfig(cfg *InsertAllClientConfig) (sanCfg *InsertAl
 	// and cannot be disabled. It is either the by this Go package defined default,
 	// or else its value is respected as-is, with once again no upper limit.
 	if cfg.MaxRetryDeadlineOffset == 0 {
-		sanCfg.MaxRetryDeadlineOffset = DefaultMaxRetryDeadlineOffset
+		sanCfg.MaxRetryDeadlineOffset = constant.DefaultMaxRetryDeadlineOffset
 	} else {
 		sanCfg.MaxRetryDeadlineOffset = cfg.MaxRetryDeadlineOffset
 	}
@@ -245,12 +276,16 @@ func sanitizeInsertAllClientConfig(cfg *InsertAllClientConfig) (sanCfg *InsertAl
 // sanitizeStorageClientConfig is used to fill in some or all properties
 // with sane default values for the StorageClientConfig.
 // Defined as a function to keep its logic contained and well tested.
-func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClientConfig) {
+func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClientConfig, err error) {
 	if cfg == nil {
 		// Nothing to do, no config is created if it already exists,
 		// given this is used within the API to create an InsertAll API client driven
 		// Streamer rather than a Storage API client driven streamer.
 		return
+	}
+	if cfg.ProtobufDescriptor == nil && cfg.BigQuerySchema == nil {
+		// nolint: goerr113
+		return nil, errors.New("StorageClientConfig invalid: either a Protobuf descriptor or BigQuery schema is required")
 	}
 
 	// we want to create a new config, as to not mutate an input param (the cfg),
@@ -266,7 +301,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	if cfg.MaxRetries < 0 {
 		sanCfg.MaxRetries = 0
 	} else if cfg.MaxRetries == 0 {
-		sanCfg.MaxRetries = DefaultMaxRetries
+		sanCfg.MaxRetries = constant.DefaultMaxRetries
 	} else {
 		sanCfg.MaxRetries = cfg.MaxRetries
 	}
@@ -275,7 +310,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	// and cannot be disabled. It is either the by this Go package defined default,
 	// or else its value is respected as-is, with once again no upper limit.
 	if cfg.InitialRetryDelay == 0 {
-		sanCfg.InitialRetryDelay = DefaultInitialRetryDelay
+		sanCfg.InitialRetryDelay = constant.DefaultInitialRetryDelay
 	} else {
 		sanCfg.InitialRetryDelay = cfg.InitialRetryDelay
 	}
@@ -284,7 +319,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	// and cannot be disabled. It is either the by this Go package defined default,
 	// or else its value is respected as-is, with once again no upper limit.
 	if cfg.MaxRetryDeadlineOffset == 0 {
-		sanCfg.MaxRetryDeadlineOffset = DefaultMaxRetryDeadlineOffset
+		sanCfg.MaxRetryDeadlineOffset = constant.DefaultMaxRetryDeadlineOffset
 	} else {
 		sanCfg.MaxRetryDeadlineOffset = cfg.MaxRetryDeadlineOffset
 	}
@@ -294,11 +329,11 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	// value in the partially exlusive `]0, currentRetryDelay]` range. While this jitter might
 	// be counter intuitive, it turns out from empirical evidence in the wild that this works surprisingly well.
 	if cfg.RetryDelayMultiplier <= 1 {
-		sanCfg.RetryDelayMultiplier = DefaultRetryDelayMultiplier
+		sanCfg.RetryDelayMultiplier = constant.DefaultRetryDelayMultiplier
 	} else {
 		sanCfg.RetryDelayMultiplier = cfg.RetryDelayMultiplier
 	}
 
 	// return the sanitized named output non-nil config
-	return sanCfg
+	return sanCfg, nil
 }

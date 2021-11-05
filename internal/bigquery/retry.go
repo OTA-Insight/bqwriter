@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bqwriter
+package bigquery
 
 import (
 	"context"
@@ -24,11 +24,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// bqRetryer is a retryer inspired by other community back-off implementations,
+// Retryer is a retryer inspired by other community back-off implementations,
 // in order to not have another dependency added to this library,
 // while still being able to rely on existing retry-related google code of
 // dependencies already required by this library for its core functionality
-type bqRetryer struct {
+type Retryer struct {
 	backoff                gax.Backoff
 	retries                int
 	maxRetries             int
@@ -40,12 +40,12 @@ type bqRetryer struct {
 }
 
 // compile-time interface compliance
-var _ gax.Retryer = (*bqRetryer)(nil)
+var _ gax.Retryer = (*Retryer)(nil)
 
-func newBQRetryer(ctx context.Context, maxRetries int, initialRetryDelay time.Duration, maxRetryDeadlineOffset time.Duration, retryDelayMultiplier float64, errorFilter func(error) bool) *bqRetryer {
+func NewRetryer(ctx context.Context, maxRetries int, initialRetryDelay time.Duration, maxRetryDeadlineOffset time.Duration, retryDelayMultiplier float64, errorFilter func(error) bool) *Retryer {
 	startTime := time.Now()
 	deadlineCtx, cancelDeadlineCtx := context.WithDeadline(ctx, startTime.Add(maxRetryDeadlineOffset))
-	return &bqRetryer{
+	return &Retryer{
 		backoff: gax.Backoff{
 			Initial:    initialRetryDelay,
 			Max:        maxRetryDeadlineOffset,
@@ -61,7 +61,7 @@ func newBQRetryer(ctx context.Context, maxRetries int, initialRetryDelay time.Du
 }
 
 // RetryOp retries the operation
-func (r *bqRetryer) RetryOp(op func(context.Context) error) error {
+func (r *Retryer) RetryOp(op func(context.Context) error) error {
 	defer r.cancelDeadlineCtx()
 	for {
 		err := op(r.deadlineCtx)
@@ -79,7 +79,7 @@ func (r *bqRetryer) RetryOp(op func(context.Context) error) error {
 }
 
 // Retry implements gax::Retryer::Retry
-func (r *bqRetryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
+func (r *Retryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
 	defer func() {
 		if !shouldRetry {
 			r.cancelDeadlineCtx()
@@ -112,7 +112,7 @@ func (r *bqRetryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
 	return r.backoff.Pause(), true
 }
 
-// bqRestAPIRetryErrorFilter used to be defined based on HTTP Codes 500 and 503.
+// GRPCRetryErrorFilter used to be defined based on HTTP Codes 500 and 503.
 // It turns out however that the actual BQ Insert All client cannot be configured in terms
 // of Retryability, and instead these values are hardcoded. Its RetryError filter is also a lot more advanced
 // than this
@@ -121,7 +121,7 @@ func (r *bqRetryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
 
 // bqGRPCRetryErrorFilter returns a Retry error filter to be used
 // for retrying GRPC Google API operations (e.g. BQ Storage client)
-func bqGRPCRetryErrorFilter(err error) bool {
+func GRPCRetryErrorFilter(err error) bool {
 	st, ok := status.FromError(err)
 	if !ok {
 		return false

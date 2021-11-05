@@ -1,4 +1,4 @@
-// Copyright 2021 OTA Insight Ltd
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,9 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bqwriter
+syntax = "proto2";
+package testdata;
+option go_package = "github.com/OTA-Insight/bqwriter/internal/storage/encoding/testdata";
 
-import "errors"
-
-// testStaticErr is an error used for testing purposes only
-var testStaticErr = errors.New("static test error")
+// SimpleMessage represents a simple message that transmits a string and int64 value.
+message SimpleMessageProto2 {
+    // name is a simple scalar string.
+    required string name = 1;
+    // value is a simple int64 value.
+    optional int64 value = 2;
+}

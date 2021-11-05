@@ -12,12 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bqwriter
-
-import (
-	"fmt"
-	"os"
-)
+package log
 
 // Logger is the interface used by this module in order to support logging.
 // By default the error messages are printed to the STDERR and debug messages are ignored, but you can
@@ -33,24 +28,4 @@ type Logger interface {
 	Error(args ...interface{})
 	// Errorf logs a formatted error message, injecting the arguments into the template string.
 	Errorf(template string, args ...interface{})
-}
-
-// stdLogger is the builtin implementation of the Logger interface,
-// and logs error messages to the STDERR, but ignores debug messages.
-type stdLogger struct{}
-
-// Debug implements Logger::Debug
-func (stdl stdLogger) Debug(args ...interface{}) {} // debug messages are ignored by default
-
-// Debugf implements Logger::Debugf
-func (stdl stdLogger) Debugf(template string, args ...interface{}) {} // debug messages are ignored by default
-
-// Error implements Logger::Error
-func (stdl stdLogger) Error(args ...interface{}) {
-	fmt.Fprint(os.Stderr, args...)
-}
-
-// Errorf implements Logger::Errorf
-func (stdl stdLogger) Errorf(template string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, template, args...)
 }

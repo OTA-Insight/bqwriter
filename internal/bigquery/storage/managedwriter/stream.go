@@ -1,0 +1,381 @@
+// Copyright 2021 OTA Insight Ltd
+// Copyright 2021 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package managedwriter
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"sync"
+	"time"
+
+	bqStorage "cloud.google.com/go/bigquery/storage/apiv1"
+	"github.com/OTA-Insight/bqwriter/constant"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery"
+	"github.com/googleapis/gax-go"
+	storagepb "google.golang.org/genproto/googleapis/cloud/bigquery/storage/v1"
+	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+)
+
+// ManagedStream is the abstraction over a single write stream.
+type ManagedStream struct {
+	streamSettings   *streamSettings
+	schemaDescriptor *descriptorpb.DescriptorProto
+	destinationTable string
+	c                *bqStorage.BigQueryWriteClient
+	fc               *flowController
+
+	// aspects of the stream client
+	ctx    context.Context // retained context for the stream
+	cancel context.CancelFunc
+	open   func(streamID string) (storagepb.BigQueryWrite_AppendRowsClient, error) // how we get a new connection
+
+	mu          sync.Mutex
+	arc         *storagepb.BigQueryWrite_AppendRowsClient // current stream connection
+	err         error                                     // terminal error
+	pending     chan *pendingWrite                        // writes awaiting status
+	streamSetup *sync.Once                                // handles amending the first request in a new stream
+}
+
+// streamSettings govern behavior of the append stream RPCs.
+type streamSettings struct {
+	// streamID contains the reference to the destination stream.
+	streamID string
+
+	// streamType governs behavior of the client, such as how
+	// offset handling is managed.
+	streamType StreamType
+
+	// MaxInflightRequests governs how many unacknowledged
+	// append writes can be outstanding into the system.
+	MaxInflightRequests int
+
+	// MaxInflightBytes governs how many unacknowledged
+	// request bytes can be outstanding into the system.
+	MaxInflightBytes int
+
+	// TraceID can be set when appending data on a stream. It's
+	// purpose is to aid in debug and diagnostic scenarios.
+	TraceID string
+
+	// dataOrigin can be set for classifying metrics generated
+	// by a stream.
+	dataOrigin string
+
+	// all related to back off algorithm
+
+	MaxRetries             int
+	InitialRetryDelay      time.Duration
+	MaxRetryDeadlineOffset time.Duration
+	RetryDelayMultiplier   float64
+}
+
+func defaultStreamSettings() *streamSettings {
+	return &streamSettings{
+		streamType:          DefaultStream,
+		MaxInflightRequests: 1000,
+		MaxInflightBytes:    0,
+		TraceID:             "",
+
+		MaxRetries:             constant.DefaultMaxRetries,
+		InitialRetryDelay:      constant.DefaultInitialRetryDelay,
+		MaxRetryDeadlineOffset: constant.DefaultMaxRetryDeadlineOffset,
+		RetryDelayMultiplier:   constant.DefaultRetryDelayMultiplier,
+	}
+}
+
+// StreamName returns the corresponding write stream ID being managed by this writer.
+func (ms *ManagedStream) StreamName() string {
+	return ms.streamSettings.streamID
+}
+
+// StreamType returns the configured type for this stream.
+func (ms *ManagedStream) StreamType() StreamType {
+	return ms.streamSettings.streamType
+}
+
+// FlushRows advances the offset at which rows in a BufferedStream are visible.  Calling
+// this method for other stream types yields an error.
+func (ms *ManagedStream) FlushRows(ctx context.Context, offset int64) (int64, error) {
+	req := &storagepb.FlushRowsRequest{
+		WriteStream: ms.streamSettings.streamID,
+		Offset: &wrapperspb.Int64Value{
+			Value: offset,
+		},
+	}
+	resp, err := ms.c.FlushRows(ctx, req)
+	// recordStat(ms.ctx, FlushRequests, 1)
+	if err != nil {
+		return 0, fmt.Errorf("BQStorage: ManagedStream: BQ Client: FlushRows: %w", err)
+	}
+	return resp.GetOffset(), nil
+}
+
+// Finalize is used to mark a stream as complete, and thus ensure no further data can
+// be appended to the stream.  You cannot finalize a DefaultStream, as it always exists.
+//
+// Finalizing does not advance the current offset of a BufferedStream, nor does it commit
+// data in a PendingStream.
+func (ms *ManagedStream) Finalize(ctx context.Context) (int64, error) {
+	// TODO: consider blocking for in-flight appends once we have an appendStream plumbed in.
+	req := &storagepb.FinalizeWriteStreamRequest{
+		Name: ms.streamSettings.streamID,
+	}
+	resp, err := ms.c.FinalizeWriteStream(ctx, req)
+	if err != nil {
+		return 0, fmt.Errorf("BQStorage: ManagedStream: Finalize: BQ Client: FinalizeWriteStream: %w", err)
+	}
+	return resp.GetRowCount(), nil
+}
+
+// getStream returns either a valid ARC client stream or permanent error.
+//
+// Calling getStream locks the mutex.
+func (ms *ManagedStream) getStream(arc *storagepb.BigQueryWrite_AppendRowsClient) (*storagepb.BigQueryWrite_AppendRowsClient, chan *pendingWrite, error) {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+	if ms.err != nil {
+		return nil, nil, ms.err
+	}
+	ms.err = ms.ctx.Err()
+	if ms.err != nil {
+		return nil, nil, ms.err
+	}
+
+	// Always return the retained ARC if the arg differs.
+	if arc != ms.arc {
+		return ms.arc, ms.pending, nil
+	}
+
+	ms.arc = new(storagepb.BigQueryWrite_AppendRowsClient)
+	*ms.arc, ms.pending, ms.err = ms.openWithRetry()
+	return ms.arc, ms.pending, ms.err
+}
+
+// openWithRetry is responsible for navigating the (re)opening of the underlying stream connection.
+//
+// Only getStream() should call this, and thus the calling code has the mutex lock.
+func (ms *ManagedStream) openWithRetry() (storagepb.BigQueryWrite_AppendRowsClient, chan *pendingWrite, error) {
+	r := ms.newGaxRetryer()
+	for {
+		// recordStat(ms.ctx, AppendClientOpenCount, 1)
+		streamID := ""
+		if ms.streamSettings != nil {
+			streamID = ms.streamSettings.streamID
+		}
+		arc, err := ms.open(streamID)
+		bo, shouldRetry := r.Retry(err)
+		if err != nil && shouldRetry {
+			// recordStat(ms.ctx, AppendClientOpenRetryCount, 1)
+			if err := gax.Sleep(ms.ctx, bo); err != nil {
+				return nil, nil, fmt.Errorf("BQStorage: ManagedStream: OpenWithRetry: Gax Sleep: %w", err)
+			}
+			continue
+		}
+		if err == nil {
+			// The channel relationship with its ARC is 1:1.  If we get a new ARC, create a new chan
+			// and fire up the associated receive processor.
+			ch := make(chan *pendingWrite)
+			go recvProcessor(ms.ctx, arc, ms.fc, ch)
+			// Also, replace the sync.Once for setting up a new stream, as we need to do "special" work
+			// for every new connection.
+			ms.streamSetup = new(sync.Once)
+			return arc, ch, nil
+		}
+		return arc, nil, err
+	}
+}
+
+func (ms *ManagedStream) append(pw *pendingWrite, opts ...gax.CallOption) error {
+	var settings gax.CallSettings
+	for _, opt := range opts {
+		opt.Resolve(&settings)
+	}
+	var r gax.Retryer
+	if settings.Retry != nil {
+		r = settings.Retry()
+	} else {
+		r = ms.newGaxRetryer()
+	}
+
+	var arc *storagepb.BigQueryWrite_AppendRowsClient
+	var ch chan *pendingWrite
+	var err error
+
+	for {
+		arc, ch, err = ms.getStream(arc)
+		if err != nil {
+			return err
+		}
+		var req *storagepb.AppendRowsRequest
+		ms.streamSetup.Do(func() {
+			reqCopy := *pw.request
+			reqCopy.WriteStream = ms.streamSettings.streamID
+			reqCopy.GetProtoRows().WriterSchema = &storagepb.ProtoSchema{
+				ProtoDescriptor: ms.schemaDescriptor,
+			}
+			if ms.streamSettings.TraceID != "" {
+				reqCopy.TraceId = ms.streamSettings.TraceID
+			}
+			req = &reqCopy
+		})
+
+		var err error
+		if req == nil {
+			err = (*arc).Send(pw.request)
+		} else {
+			// we had to amend the initial request
+			err = (*arc).Send(req)
+		}
+		if err != nil {
+			bo, shouldRetry := r.Retry(err)
+			if shouldRetry {
+				if err := gax.Sleep(ms.ctx, bo); err != nil {
+					return fmt.Errorf("BQStorage: ManagedStream: append: Gax Sleep: %w", err)
+				}
+				continue
+			}
+			ms.mu.Lock()
+			ms.err = err
+			ms.mu.Unlock()
+		}
+		if err != nil {
+			return fmt.Errorf("BQStorage: ManagedStream: append: %w", err)
+		}
+
+		ch <- pw
+		return nil
+	}
+}
+
+// Close closes a managed stream.
+func (ms *ManagedStream) Close() error {
+	var arc *storagepb.BigQueryWrite_AppendRowsClient
+
+	arc, ch, err := ms.getStream(arc)
+	if err != nil {
+		return err
+	}
+	if ms.arc == nil {
+		//nolint: goerr113
+		return errors.New("no stream exists")
+	}
+	err = (*arc).CloseSend()
+	if err == nil {
+		close(ch)
+	}
+	ms.mu.Lock()
+	ms.err = io.EOF
+	ms.mu.Unlock()
+	// Propagate cancellation.
+	if ms.cancel != nil {
+		ms.cancel()
+	}
+	return fmt.Errorf("BQStorage: ManagedStream: Close: %w", err)
+}
+
+// AppendRows sends the append requests to the service, and returns a single AppendResult for tracking
+// the set of data.
+//
+// The format of the row data is binary serialized protocol buffer bytes, and and the message
+// must adhere to the format of the schema Descriptor passed in when creating the managed stream.
+func (ms *ManagedStream) AppendRows(ctx context.Context, data [][]byte, offset int64) (*AppendResult, error) {
+	pw := newPendingWrite(data, offset)
+	// check flow control
+	if err := ms.fc.acquire(ctx, pw.reqSize); err != nil {
+		// in this case, we didn't acquire, so don't pass the flow controller reference to avoid a release.
+		pw.markDone(NoStreamOffset, err, nil)
+		return nil, err
+	}
+	// proceed to call
+	if err := ms.append(pw); err != nil {
+		// pending write is DOA.
+		pw.markDone(NoStreamOffset, err, ms.fc)
+		return nil, err
+	}
+	return pw.result, nil
+}
+
+func (ms *ManagedStream) newGaxRetryer() gax.Retryer {
+	if ms.streamSettings == nil {
+		return bigquery.NewRetryer(
+			ms.ctx,
+			constant.DefaultMaxRetries,
+			constant.DefaultInitialRetryDelay,
+			constant.DefaultMaxRetryDeadlineOffset,
+			constant.DefaultRetryDelayMultiplier,
+			bigquery.GRPCRetryErrorFilter,
+		)
+	}
+	// all values have received their sane defaults already in Storage Client Config
+	return bigquery.NewRetryer(
+		ms.ctx,
+		ms.streamSettings.MaxRetries,
+		ms.streamSettings.InitialRetryDelay,
+		ms.streamSettings.MaxRetryDeadlineOffset,
+		ms.streamSettings.RetryDelayMultiplier,
+		bigquery.GRPCRetryErrorFilter,
+	)
+}
+
+// recvProcessor is used to propagate append responses back up with the originating write requests in a goroutine.
+//
+// The receive processor only deals with a single instance of a connection/channel, and thus should never interact
+// with the mutex lock.
+func recvProcessor(ctx context.Context, arc storagepb.BigQueryWrite_AppendRowsClient, fc *flowController, ch <-chan *pendingWrite) {
+	// TODO:  We'd like to re-send requests that are in an ambiguous state due to channel errors.  For now, we simply
+	// ensure that pending writes get acknowledged with a terminal state.
+	for {
+		select {
+		case <-ctx.Done():
+			// Context is done, so we're not going to get further updates.  Mark all work failed with the context error.
+			for {
+				pw, ok := <-ch
+				if !ok {
+					return
+				}
+				pw.markDone(NoStreamOffset, ctx.Err(), fc)
+			}
+		case nextWrite, ok := <-ch:
+			if !ok {
+				// Channel closed, all elements processed.
+				return
+			}
+
+			// block until we get a corresponding response or err from stream.
+			resp, err := arc.Recv()
+			if err != nil {
+				nextWrite.markDone(NoStreamOffset, err, fc)
+				continue
+			}
+
+			if status := resp.GetError(); status != nil {
+				nextWrite.markDone(NoStreamOffset, grpcstatus.ErrorProto(status), fc)
+				continue
+			}
+			success := resp.GetAppendResult()
+			off := success.GetOffset()
+			if off != nil {
+				nextWrite.markDone(off.GetValue(), nil, fc)
+			} else {
+				nextWrite.markDone(NoStreamOffset, nil, fc)
+			}
+		}
+	}
+}

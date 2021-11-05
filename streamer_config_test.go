@@ -17,6 +17,13 @@ package bqwriter
 import (
 	"testing"
 	"time"
+
+	"cloud.google.com/go/bigquery"
+	"github.com/OTA-Insight/bqwriter/constant"
+	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/internal/test"
+	"github.com/OTA-Insight/bqwriter/log"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 func deepCloneStreamerConfig(cfg *StreamerConfig) *StreamerConfig {
@@ -38,21 +45,21 @@ func deepCloneStreamerConfig(cfg *StreamerConfig) *StreamerConfig {
 
 var (
 	expectedDefaultStreamerConfig = StreamerConfig{
-		WorkerCount:     DefaultWorkerCount,
-		WorkerQueueSize: DefaultWorkerQueueSize,
-		MaxBatchDelay:   DefaultMaxBatchDelay,
-		Logger:          stdLogger{},
+		WorkerCount:     constant.DefaultWorkerCount,
+		WorkerQueueSize: constant.DefaultWorkerQueueSize,
+		MaxBatchDelay:   constant.DefaultMaxBatchDelay,
+		Logger:          internal.Logger{},
 		InsertAllClient: &InsertAllClientConfig{
-			BatchSize:              DefaultBatchSize,
-			MaxRetryDeadlineOffset: DefaultMaxRetryDeadlineOffset,
+			BatchSize:              constant.DefaultBatchSize,
+			MaxRetryDeadlineOffset: constant.DefaultMaxRetryDeadlineOffset,
 		},
 	}
 
-	expecredDefaultStorageClient = StorageClientConfig{
-		MaxRetries:             DefaultMaxRetries,
-		InitialRetryDelay:      DefaultInitialRetryDelay,
-		MaxRetryDeadlineOffset: DefaultMaxRetryDeadlineOffset,
-		RetryDelayMultiplier:   DefaultRetryDelayMultiplier,
+	expectedDefaultStorageClient = StorageClientConfig{
+		MaxRetries:             constant.DefaultMaxRetries,
+		InitialRetryDelay:      constant.DefaultInitialRetryDelay,
+		MaxRetryDeadlineOffset: constant.DefaultMaxRetryDeadlineOffset,
+		RetryDelayMultiplier:   constant.DefaultRetryDelayMultiplier,
 	}
 )
 
@@ -60,48 +67,54 @@ func assertStreamerConfig(t *testing.T, inputCfg *StreamerConfig, expectedOuputC
 	// deep clone input param so that we can really test if we do not mutate our variables
 	inputPassedCfg := deepCloneStreamerConfig(inputCfg)
 	if inputCfg == nil {
-		assertNil(t, inputPassedCfg)
+		test.AssertNil(t, inputPassedCfg)
 	} else {
-		assertNotEqualShallow(t, inputPassedCfg, inputCfg)
+		test.AssertNotEqualShallow(t, inputPassedCfg, inputCfg)
 		// insertAll client is either nil in output or it should be a different pointer
 		if inputCfg.InsertAllClient == nil {
-			assertNil(t, inputCfg.InsertAllClient)
+			test.AssertNil(t, inputCfg.InsertAllClient)
 		} else {
-			assertNotEqualShallow(t, inputPassedCfg.InsertAllClient, inputCfg.InsertAllClient)
+			test.AssertNotEqualShallow(t, inputPassedCfg.InsertAllClient, inputCfg.InsertAllClient)
 		}
 		// storage client is either nil in output or it should be a different pointer
 		if inputCfg.StorageClient == nil {
-			assertNil(t, inputCfg.StorageClient)
+			test.AssertNil(t, inputCfg.StorageClient)
 		} else {
-			assertNotEqualShallow(t, inputPassedCfg.StorageClient, inputCfg.StorageClient)
+			test.AssertNotEqualShallow(t, inputPassedCfg.StorageClient, inputCfg.StorageClient)
 		}
 	}
 
 	// sanitize the cfg
-	outputCfg := sanitizeStreamerConfig(inputPassedCfg)
+	outputCfg, err := sanitizeStreamerConfig(inputPassedCfg)
+	if inputPassedCfg != nil && inputPassedCfg.StorageClient != nil && inputPassedCfg.StorageClient.BigQuerySchema == nil && inputPassedCfg.StorageClient.ProtobufDescriptor == nil {
+		test.AssertError(t, err)
+		test.AssertNil(t, outputCfg)
+		return
+	}
+	test.AssertNoError(t, err)
 
 	// ensure a new pointer is returned
-	assertNotEqualShallow(t, inputPassedCfg, outputCfg)
+	test.AssertNotEqualShallow(t, inputPassedCfg, outputCfg)
 	if inputPassedCfg != nil {
 		// also ensure our child cfgs are either nil or other pointers
-		assertNotEqualShallow(t, inputPassedCfg.InsertAllClient, outputCfg.InsertAllClient)
+		test.AssertNotEqualShallow(t, inputPassedCfg.InsertAllClient, outputCfg.InsertAllClient)
 		// storage client is either nil in output or it should be a different pointer
 		if inputPassedCfg.StorageClient == nil {
-			assertNil(t, outputCfg.StorageClient)
+			test.AssertNil(t, outputCfg.StorageClient)
 		} else {
-			assertNotEqualShallow(t, inputPassedCfg.StorageClient, outputCfg.StorageClient)
+			test.AssertNotEqualShallow(t, inputPassedCfg.StorageClient, outputCfg.StorageClient)
 		}
 	}
 
 	// ensure that our output is as expected
-	assertEqual(t, outputCfg.StorageClient, expectedOuputCfg.StorageClient)
+	test.AssertEqual(t, outputCfg.StorageClient, expectedOuputCfg.StorageClient)
 	// overwrite so our global deep equal check also passes
 	outputCfg.StorageClient = expectedOuputCfg.StorageClient
-	assertEqual(t, outputCfg.InsertAllClient, expectedOuputCfg.InsertAllClient)
+	test.AssertEqual(t, outputCfg.InsertAllClient, expectedOuputCfg.InsertAllClient)
 	// overwrite so our global deep equal check also passes
 	outputCfg.InsertAllClient = expectedOuputCfg.InsertAllClient
 	// final global deep equal
-	assertEqual(t, outputCfg, expectedOuputCfg)
+	test.AssertEqual(t, outputCfg, expectedOuputCfg)
 }
 
 func TestSanitizeStreamerConfigFullDefault(t *testing.T) {
@@ -135,8 +148,8 @@ func TestSanitizeStreamerConfigSharedDefaults(t *testing.T) {
 		InputMaxBatchDelay    time.Duration
 		ExpectedMaxBatchDelay time.Duration
 
-		InputLogger    Logger
-		ExpectedLogger Logger
+		InputLogger    log.Logger
+		ExpectedLogger log.Logger
 	}{
 		// full default
 		{
@@ -217,8 +230,8 @@ func TestSanitizeStreamerConfigSharedDefaults(t *testing.T) {
 			ExpectedWorkerCount:     expectedDefaultStreamerConfig.WorkerCount,
 			ExpectedWorkerQueueSize: expectedDefaultStreamerConfig.WorkerQueueSize,
 			ExpectedMaxBatchDelay:   expectedDefaultStreamerConfig.MaxBatchDelay,
-			InputLogger:             testLogger{},
-			ExpectedLogger:          testLogger{},
+			InputLogger:             test.Logger{},
+			ExpectedLogger:          test.Logger{},
 		},
 	}
 	for _, testCase := range testCases {
@@ -358,7 +371,19 @@ func TestSanitizeStreamerConfigInsertAllDefaults(t *testing.T) {
 	}
 }
 
-func TestSanitizeStreamerConfigStorageDefaults(t *testing.T) {
+func TestSanitizeStreamerConfigStorageDefaultsForBigQuerySchema(t *testing.T) {
+	testSanitizeStreamerConfigStorageDefaultsForEncoder(t, new(bigquery.Schema), nil)
+}
+
+func TestSanitizeStreamerConfigStorageDefaultsForProtobufDescriptor(t *testing.T) {
+	testSanitizeStreamerConfigStorageDefaultsForEncoder(t, nil, new(descriptorpb.DescriptorProto))
+}
+
+func TestSanitizeStreamerConfigStorageDefaultsWithoutEncoderConfig(t *testing.T) {
+	testSanitizeStreamerConfigStorageDefaultsForEncoder(t, nil, nil)
+}
+
+func testSanitizeStreamerConfigStorageDefaultsForEncoder(t *testing.T, schema *bigquery.Schema, protobufDes *descriptorpb.DescriptorProto) {
 	testCases := []struct {
 		InputMaxRetries    int
 		ExpectedMaxRetries int
@@ -374,124 +399,124 @@ func TestSanitizeStreamerConfigStorageDefaults(t *testing.T) {
 	}{
 		// full default
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		// max retry cases
 		{
 			InputMaxRetries:                -1,
 			ExpectedMaxRetries:             0,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		{
 			InputMaxRetries:                0,
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		{
 			InputMaxRetries:                42,
 			ExpectedMaxRetries:             42,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		// initial retry delay cases
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
 			InputInitialRetryDelay:         0,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
 			InputInitialRetryDelay:         42,
 			ExpectedInitialRetryDelay:      42,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		// max retry deadline offset cases
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
 			InputMaxRetryDeadlineOffset:    0,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
 			InputMaxRetryDeadlineOffset:    2021,
 			ExpectedMaxRetryDeadlineOffset: 2021,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		// retry delay multiplier cases
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
 			InputRetryDelayMultiplier:      -1,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
 			InputRetryDelayMultiplier:      -0.5,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
 			InputRetryDelayMultiplier:      0,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
 			InputRetryDelayMultiplier:      0.5,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
 			InputRetryDelayMultiplier:      1,
-			ExpectedRetryDelayMultiplier:   expecredDefaultStorageClient.RetryDelayMultiplier,
+			ExpectedRetryDelayMultiplier:   expectedDefaultStorageClient.RetryDelayMultiplier,
 		},
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
 			InputRetryDelayMultiplier:      1.05,
 			ExpectedRetryDelayMultiplier:   1.05,
 		},
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
 			InputRetryDelayMultiplier:      1.5,
 			ExpectedRetryDelayMultiplier:   1.5,
 		},
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
 			InputRetryDelayMultiplier:      5,
 			ExpectedRetryDelayMultiplier:   5,
 		},
 		{
-			ExpectedMaxRetries:             expecredDefaultStorageClient.MaxRetries,
-			ExpectedInitialRetryDelay:      expecredDefaultStorageClient.InitialRetryDelay,
-			ExpectedMaxRetryDeadlineOffset: expecredDefaultStorageClient.MaxRetryDeadlineOffset,
+			ExpectedMaxRetries:             expectedDefaultStorageClient.MaxRetries,
+			ExpectedInitialRetryDelay:      expectedDefaultStorageClient.InitialRetryDelay,
+			ExpectedMaxRetryDeadlineOffset: expectedDefaultStorageClient.MaxRetryDeadlineOffset,
 			InputRetryDelayMultiplier:      42,
 			ExpectedRetryDelayMultiplier:   42,
 		},
@@ -503,6 +528,8 @@ func TestSanitizeStreamerConfigStorageDefaults(t *testing.T) {
 		// ... input
 		inputCfg := new(StreamerConfig)
 		inputCfg.StorageClient = &StorageClientConfig{
+			BigQuerySchema:         schema,
+			ProtobufDescriptor:     protobufDes,
 			MaxRetries:             testCase.InputMaxRetries,
 			InitialRetryDelay:      testCase.InputInitialRetryDelay,
 			MaxRetryDeadlineOffset: testCase.InputMaxRetryDeadlineOffset,
@@ -520,10 +547,3 @@ func TestSanitizeStreamerConfigStorageDefaults(t *testing.T) {
 		assertStreamerConfig(t, inputCfg, expectedOutputCfg)
 	}
 }
-
-type testLogger struct{}
-
-func (testLogger) Debug(_args ...interface{})                    {}
-func (testLogger) Debugf(_template string, _args ...interface{}) {}
-func (testLogger) Error(_args ...interface{})                    {}
-func (testLogger) Errorf(_template string, _args ...interface{}) {}

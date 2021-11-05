@@ -22,12 +22,19 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery/insertall"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
+	"github.com/OTA-Insight/bqwriter/log"
 )
 
 // Streamer is a simple BQ stream-writer, allowing you
 // write data to a BQ table concurrently.
 type Streamer struct {
-	logger Logger
+	logger log.Logger
 
 	workerWg       sync.WaitGroup
 	workerCh       chan streamerJob
@@ -48,39 +55,74 @@ type streamerJob struct {
 func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
 	return newStreamerWithClientBuilder(
 		ctx,
-		func(ctx context.Context, projectID, dataSetID, tableID string, logger Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
+		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bigquery.Client, error) {
 			if storageCfg != nil {
-				return nil, fmt.Errorf("create new streamer: using storage client: %w", notSupportedErr)
+				if storageCfg.ProtobufDescriptor != nil {
+					client, err := storage.NewClient(
+						projectID, dataSetID, tableID,
+						encoding.NewProtobufEncoder(), storageCfg.ProtobufDescriptor,
+						storageCfg.MaxRetries, storageCfg.InitialRetryDelay,
+						storageCfg.MaxRetryDeadlineOffset, storageCfg.RetryDelayMultiplier,
+						logger,
+					)
+					if err != nil {
+						return nil, fmt.Errorf("BigQuery: NewStreamer: New Protobuf Message Storage client: %w", err)
+					}
+					return client, nil
+				}
+
+				encoder, err := encoding.NewSchemaEncoder(*storageCfg.BigQuerySchema)
+				if err != nil {
+					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: create schema encoder: %w", err)
+				}
+				client, err := storage.NewClient(
+					projectID, dataSetID, tableID,
+					encoder, nil,
+					storageCfg.MaxRetries, storageCfg.InitialRetryDelay,
+					storageCfg.MaxRetryDeadlineOffset, storageCfg.RetryDelayMultiplier,
+					logger,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: %w", err)
+				}
+				return client, nil
 			}
 
-			return newStdBQInsertAllThickClient(
+			client, err := insertall.NewClient(
 				projectID, dataSetID, tableID,
 				!insertAllCfg.FailOnInvalidRows,
 				!insertAllCfg.FailForUnknownValues,
 				insertAllCfg.BatchSize, insertAllCfg.MaxRetryDeadlineOffset,
 				logger,
 			)
+			if err != nil {
+				return nil, fmt.Errorf("BigQuery: NewStreamer: New InsertAll client: %w", err)
+			}
+			return client, nil
 		},
 		projectID, dataSetID, tableID,
 		cfg,
 	)
 }
 
-type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID string, logger Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error)
+type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bigquery.Client, error)
 
 func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuilderFunc, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
 	if projectID == "" {
-		return nil, fmt.Errorf("streamer client creation: validate projectID: %w: missing", invalidParamErr)
+		return nil, fmt.Errorf("streamer client creation: validate projectID: %w: missing", internal.InvalidParamErr)
 	}
 	if dataSetID == "" {
-		return nil, fmt.Errorf("streamer client creation: validate dataSetID: %w: missing", invalidParamErr)
+		return nil, fmt.Errorf("streamer client creation: validate dataSetID: %w: missing", internal.InvalidParamErr)
 	}
 	if tableID == "" {
-		return nil, fmt.Errorf("streamer client creation: validate tableID: %w: missing", invalidParamErr)
+		return nil, fmt.Errorf("streamer client creation: validate tableID: %w: missing", internal.InvalidParamErr)
 	}
 
 	// sanitize cfg
-	cfg = sanitizeStreamerConfig(cfg)
+	cfg, err := sanitizeStreamerConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("streamer client creation: sanitize streamer config: %w", err)
+	}
 
 	// create streamer
 	workerCtx, workerCtxCancelFn := context.WithCancel(ctx)
@@ -129,7 +171,7 @@ func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuild
 // configured to do so.
 func (s *Streamer) Write(data interface{}) error {
 	if data == nil {
-		return fmt.Errorf("streamer client write: validate data: %w: nil data", invalidParamErr)
+		return fmt.Errorf("streamer client write: validate data: %w: nil data", internal.InvalidParamErr)
 	}
 	job := streamerJob{
 		Data: data,
@@ -147,7 +189,7 @@ func (s *Streamer) Write(data interface{}) error {
 }
 
 // doWork defines the main loop of a Streamer's worker goroutine.
-func (s *Streamer) doWork(client bqClient, maxBatchDelay time.Duration) {
+func (s *Streamer) doWork(client bigquery.Client, maxBatchDelay time.Duration) {
 	defer func() {
 		err := client.Flush()
 		if err != nil {
@@ -178,6 +220,7 @@ func (s *Streamer) doWork(client bqClient, maxBatchDelay time.Duration) {
 			if err != nil {
 				s.logger.Errorf("worker thread data job received: put data to client: failure: %v", err)
 			} else if flushed {
+				batchDelayTicker.Reset(maxBatchDelay)
 				s.logger.Debug("worker thread data job received: put data to client: flushed all batched rows")
 			}
 		}

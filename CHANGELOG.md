@@ -1,13 +1,37 @@
 # Changes
 
-## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.4.0) (ETA: 2021-11-01) (TODO)
+## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.4.0) (ETA: 2021-11-05)
+
+- refactor code:
+  - all internal code is now found in one of the internal packages,
+    as to have a cleaner codebase and keeping all its definitions explicitly internal;
+  - added internal BQ Storage client, which is a heavily modified fork from
+    <https://github.com/googleapis/google-cloud-go/tree/a2af4de215a42848368ec3081263d34782032caa/bigquery/storage/managedwriter>;
+    - the fork is only meant to be as long as required, it is desired to switch to the upstream
+      managed writer as soon as possible;
+    - Only using the default stream is supported. CommittedStream and/or PendingStream
+      can be supported upon request;
+  - constants are now moved to the `constant` package of this module as to make it very clear
+    within the code that these are constants as well as to allow the ability for both the internal
+    as well as the public root package to make use of it;
+  - the `Logger` interface is moved to its own `log` package for the same reasons as the
+    introduction of the `constant` package;
+- adds initial StorageAPI Support:
+    - Only using the default stream is supported. CommittedStream and/or PendingStream
+      can be supported upon request;
+- bump min Go version supported to Go 1.15, as we make use of the `time.Ticket.Reset` functionality
+  which is only available sine Go 1.15:
+    - Note this feature isn't critical so if ever required for a good reason,
+      we can probably work around it and downgrade the min Go version once again;
+- updated dependencies to latest:
+  - google.golang.org/grpc: v1.42.0;
+
+Other updates made to the repository:
 
 - enforce issue templates in the OTA-Insight/bqwriter GitHub project;
 - add a pull request template in the OTA-Insight/bqwriter GitHub project;
 - rename this file to [CHANGELOG.md](CHANGELOG.md) (was CHANGES.md) in order to better reflect the usual conventions;
 - add other conventional special files: [AUTHORS](AUTHORS) and [CODEOWNERS](CODEOWNERS);
-
-work in progress
 
 ## [v0.3.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.0...v0.3.1) (2021-10-28)
 
