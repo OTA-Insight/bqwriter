@@ -293,6 +293,11 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	// to be used at setup time it should be ok, the memory gods will forgive us I'm sure
 	sanCfg = new(StorageClientConfig)
 
+	// simply assign the encoder-related properties
+	// no need for any validation there
+	sanCfg.BigQuerySchema = cfg.BigQuerySchema
+	sanCfg.ProtobufDescriptor = cfg.ProtobufDescriptor
+
 	// MaxRetries can be:
 	// - negative to disable the the entire Retry back-off algorithm,
 	//   and make sure the client doesn't retry retry-able errors.

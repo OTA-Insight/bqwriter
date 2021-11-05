@@ -538,6 +538,8 @@ func testSanitizeStreamerConfigStorageDefaultsForEncoder(t *testing.T, schema *b
 		// ... expected output
 		expectedOutputCfg := deepCloneStreamerConfig(&expectedDefaultStreamerConfig)
 		expectedOutputCfg.StorageClient = &StorageClientConfig{
+			BigQuerySchema:         schema,
+			ProtobufDescriptor:     protobufDes,
 			MaxRetries:             testCase.ExpectedMaxRetries,
 			InitialRetryDelay:      testCase.ExpectedInitialRetryDelay,
 			MaxRetryDeadlineOffset: testCase.ExpectedMaxRetryDeadlineOffset,
