@@ -1,6 +1,11 @@
 # Changes
 
-## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.4.0) (ETA: 2021-11-05)
+## [v0.4.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.4.0...v0.4.1) (2021-12-06)
+
+- add storage API driven stream examples to README;
+- fix nil deref bug when creating streamer using StorageAPI;
+
+## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.4.0) (2021-11-05)
 
 - refactor code:
   - all internal code is now found in one of the internal packages,
