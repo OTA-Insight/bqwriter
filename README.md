@@ -6,7 +6,8 @@ is used (REST API under the hood), but you can configure to use [the Storage Wri
 
 The InsertAll API is easier to configure and can work pretty much out of the box without any configuration.
 It is recommended to use the Storage API as it is faster and comes with a lower cost. The latter does however
-require a bit more configuration on your side, including a Proto schema file as well. See the Storage example below on how to do (TODO).
+require a bit more configuration on your side, including a Proto schema file as well.
+See [the Storage example below](#Storage-Streamer) on how to do this.
 
 ```go
 import "github.com/OTA-Insight/bqwriter"
