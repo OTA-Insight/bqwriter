@@ -220,6 +220,7 @@ func (s *Streamer) doWork(client bigquery.Client, maxBatchDelay time.Duration) {
 			if err != nil {
 				s.logger.Errorf("worker thread data job received: put data to client: failure: %v", err)
 			} else if flushed {
+				batchDelayTicker.Reset(maxBatchDelay)
 				s.logger.Debug("worker thread data job received: put data to client: flushed all batched rows")
 			}
 		}
