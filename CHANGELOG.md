@@ -1,6 +1,6 @@
 # Changes
 
-## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.4.0) (ETA: 2021-11-01) (TODO)
+## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.4.0) (ETA: 2021-11-05)
 
 - refactor code:
   - all internal code is now found in one of the internal packages,
@@ -24,8 +24,6 @@ Other updates made to the repository:
 - add a pull request template in the OTA-Insight/bqwriter GitHub project;
 - rename this file to [CHANGELOG.md](CHANGELOG.md) (was CHANGES.md) in order to better reflect the usual conventions;
 - add other conventional special files: [AUTHORS](AUTHORS) and [CODEOWNERS](CODEOWNERS);
-
-work in progress
 
 ## [v0.3.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.0...v0.3.1) (2021-10-28)
 

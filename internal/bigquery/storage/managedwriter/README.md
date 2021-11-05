@@ -8,6 +8,7 @@ here is what we definitely require from that package in order to do so:
 
 - be able to define a custom Retryer for all its GRPC purposes,
   currently it is not possible for any purpose at all;
+  - an issue (feature-request) is created for this: <https://github.com/googleapis/google-cloud-go/issues/5094>
 - receive some kind of commitment from them that they do seriously consider,
   making this a production-ready part of the bigquery storage API;
 - make the stats/diagnostic code opt-in;
