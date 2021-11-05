@@ -106,13 +106,13 @@ func newStdBQClient(projectID, dataSetID, tableID string, skipInvalidRows, ignor
 // NewClient creates a new Client.
 func NewClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool, batchSize int, maxRetryDeadlineOffset time.Duration, logger log.Logger) (*Client, error) {
 	if projectID == "" {
-		return nil, fmt.Errorf("thick client creation: validate projectID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("bq insertAll client creation: validate projectID: %w: missing", internal.InvalidParamErr)
 	}
 	if dataSetID == "" {
-		return nil, fmt.Errorf("thick client creation: validate dataSetID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("bq insertAll client creation: validate dataSetID: %w: missing", internal.InvalidParamErr)
 	}
 	if tableID == "" {
-		return nil, fmt.Errorf("thick client creation: validate tableID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("bq insertAll client creation: validate tableID: %w: missing", internal.InvalidParamErr)
 	}
 	client, err := newStdBQClient(projectID, dataSetID, tableID, skipInvalidRows, ignoreUnknownValues)
 	if err != nil {
@@ -123,10 +123,10 @@ func NewClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnkn
 
 func newClient(client bqClient, batchSize int, maxRetryDeadlineOffset time.Duration, logger log.Logger) (*Client, error) {
 	if client == nil {
-		return nil, fmt.Errorf("thick client creation: validate client: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("bq insertAll client creation: validate client: %w: missing", internal.InvalidParamErr)
 	}
 	if logger == nil {
-		return nil, fmt.Errorf("thick client creation: logger client: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("bq insertAll client creation: logger client: %w: missing", internal.InvalidParamErr)
 	}
 	if batchSize <= 0 {
 		batchSize = constant.DefaultBatchSize

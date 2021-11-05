@@ -16,12 +16,14 @@ package storage
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
+	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/managedwriter"
 	"github.com/OTA-Insight/bqwriter/log"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 // Client implements the standard/official BQ (cloud) Client,
@@ -32,12 +34,34 @@ type Client struct {
 	client *managedwriter.Client
 	stream *managedwriter.ManagedStream
 
+	encoder encoding.Encoder
+
 	ctx context.Context
 
 	logger log.Logger
 }
 
-func NewClient(projectID, dataSetID, tableID string, maxRetries int, initialRetryDelay time.Duration, maxRetryDeadlineOffset time.Duration, retryDelayMultiplier float64, logger log.Logger) (*Client, error) {
+// NewClient creates a new BQ Storage Client.
+// See the documentation of Client for more information how to use it.
+func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, dp *descriptorpb.DescriptorProto, maxRetries int, initialRetryDelay time.Duration, maxRetryDeadlineOffset time.Duration, retryDelayMultiplier float64, logger log.Logger) (*Client, error) {
+	if projectID == "" {
+		return nil, fmt.Errorf("bq storage client creation: validate projectID: %w: missing", internal.InvalidParamErr)
+	}
+	if dataSetID == "" {
+		return nil, fmt.Errorf("bq storage client creation: validate dataSetID: %w: missing", internal.InvalidParamErr)
+	}
+	if tableID == "" {
+		return nil, fmt.Errorf("bq storage client creation: validate tableID: %w: missing", internal.InvalidParamErr)
+	}
+	if encoder == nil {
+		return nil, fmt.Errorf("bq storage client creation: validate encoder: %w: missing", internal.InvalidParamErr)
+	}
+
+	// only debug log that a descriptor is not given, as it is not seen as a critical error
+	if dp == nil {
+		logger.Debug("no Protobuf descriptor given as part of the creation of a new BQ Storage Client")
+	}
+
 	// NOTE: we are using the background Context,
 	// as to ensure that we can always write to the client,
 	// even when the actual parent context is already done.
@@ -51,15 +75,18 @@ func NewClient(projectID, dataSetID, tableID string, maxRetries int, initialRetr
 	if err != nil {
 		return nil, fmt.Errorf("BQ Storage Client creation: create managed writer: %w", err)
 	}
-	stream, err := writer.NewManagedStream(ctx,
+	writerOpts := []managedwriter.WriterOption{
 		managedwriter.WithDestinationTable(fmt.Sprintf(
 			"projects/%s/datasets/%s/tables/%s",
 			projectID, dataSetID, tableID,
 		)),
 		managedwriter.WithDataOrigin("OTA-Insight/bqwriter"),
 		managedwriter.WithType(managedwriter.DefaultStream),
-		// managedwriter.WithSchemaDescriptor(descriptorProto),
-	)
+	}
+	if dp != nil {
+		writerOpts = append(writerOpts, managedwriter.WithSchemaDescriptor(dp))
+	}
+	stream, err := writer.NewManagedStream(ctx, writerOpts...)
 	if err != nil {
 		if err := writer.Close(); err != nil {
 			logger.Errorf("failed to close BQ Storage client that failed to create stream: %v", err)
@@ -67,21 +94,23 @@ func NewClient(projectID, dataSetID, tableID string, maxRetries int, initialRetr
 		return nil, fmt.Errorf("BQ Storage Client creation: create managed writer: %w", err)
 	}
 	return &Client{
-		client: writer,
-		stream: stream,
-		ctx:    ctx,
-		logger: logger,
+		client:  writer,
+		stream:  stream,
+		encoder: encoder,
+		ctx:     ctx,
+		logger:  logger,
 	}, nil
 }
 
 // Put implements bigquery.Client::Put
 func (bqc *Client) Put(data interface{}) (bool, error) {
-	binaryData, err := bqc.encodeData(data)
+	binaryData, err := bqc.encoder.EncodeRows(data)
 	if err != nil {
 		return false, fmt.Errorf("BQ Storage Client: Put Data: encode data: %w", err)
 	}
 
 	// TODO: do something with result
+	//
 	// NOTE: we do not define an offset here,
 	// as it would only be useful in case we want to do
 	// diagnostics with them
@@ -108,9 +137,4 @@ func (bqc *Client) Close() error {
 		return fmt.Errorf("close BQ storage client: close internal storage writer client: %w", err)
 	}
 	return nil
-}
-
-func (bqc *Client) encodeData(data interface{}) ([][]byte, error) {
-	// nolint: goerr113
-	return nil, errors.New("TODO")
 }

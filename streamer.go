@@ -27,6 +27,7 @@ import (
 	"github.com/OTA-Insight/bqwriter/internal/bigquery"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/insertall"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
 	"github.com/OTA-Insight/bqwriter/log"
 )
 
@@ -56,17 +57,37 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 		ctx,
 		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bigquery.Client, error) {
 			if storageCfg != nil {
+				if storageCfg.ProtobufDescriptor != nil {
+					client, err := storage.NewClient(
+						projectID, dataSetID, tableID,
+						encoding.NewProtobufEncoder(), storageCfg.ProtobufDescriptor,
+						storageCfg.MaxRetries, storageCfg.InitialRetryDelay,
+						storageCfg.MaxRetryDeadlineOffset, storageCfg.RetryDelayMultiplier,
+						logger,
+					)
+					if err != nil {
+						return nil, fmt.Errorf("BigQuery: NewStreamer: New Protobuf Message Storage client: %w", err)
+					}
+					return client, nil
+				}
+
+				encoder, err := encoding.NewSchemaEncoder(*storageCfg.BigQuerySchema)
+				if err != nil {
+					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: create schema encoder: %w", err)
+				}
 				client, err := storage.NewClient(
 					projectID, dataSetID, tableID,
+					encoder, nil,
 					storageCfg.MaxRetries, storageCfg.InitialRetryDelay,
 					storageCfg.MaxRetryDeadlineOffset, storageCfg.RetryDelayMultiplier,
 					logger,
 				)
 				if err != nil {
-					return nil, fmt.Errorf("BigQuery: NewStreamer: New Storage client: %w", err)
+					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: %w", err)
 				}
 				return client, nil
 			}
+
 			client, err := insertall.NewClient(
 				projectID, dataSetID, tableID,
 				!insertAllCfg.FailOnInvalidRows,
@@ -98,7 +119,10 @@ func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuild
 	}
 
 	// sanitize cfg
-	cfg = sanitizeStreamerConfig(cfg)
+	cfg, err := sanitizeStreamerConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("streamer client creation: sanitize streamer config: %w", err)
+	}
 
 	// create streamer
 	workerCtx, workerCtxCancelFn := context.WithCancel(ctx)

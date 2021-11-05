@@ -18,10 +18,12 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/OTA-Insight/bqwriter/constant"
 	"github.com/OTA-Insight/bqwriter/internal"
 	"github.com/OTA-Insight/bqwriter/internal/test"
 	"github.com/OTA-Insight/bqwriter/log"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 func deepCloneStreamerConfig(cfg *StreamerConfig) *StreamerConfig {
@@ -83,7 +85,13 @@ func assertStreamerConfig(t *testing.T, inputCfg *StreamerConfig, expectedOuputC
 	}
 
 	// sanitize the cfg
-	outputCfg := sanitizeStreamerConfig(inputPassedCfg)
+	outputCfg, err := sanitizeStreamerConfig(inputPassedCfg)
+	if inputPassedCfg != nil && inputPassedCfg.StorageClient != nil && inputPassedCfg.StorageClient.BigQuerySchema == nil && inputPassedCfg.StorageClient.ProtobufDescriptor == nil {
+		test.AssertError(t, err)
+		test.AssertNil(t, outputCfg)
+		return
+	}
+	test.AssertNoError(t, err)
 
 	// ensure a new pointer is returned
 	test.AssertNotEqualShallow(t, inputPassedCfg, outputCfg)
@@ -363,7 +371,19 @@ func TestSanitizeStreamerConfigInsertAllDefaults(t *testing.T) {
 	}
 }
 
-func TestSanitizeStreamerConfigStorageDefaults(t *testing.T) {
+func TestSanitizeStreamerConfigStorageDefaultsForBigQuerySchema(t *testing.T) {
+	testSanitizeStreamerConfigStorageDefaultsForEncoder(t, new(bigquery.Schema), nil)
+}
+
+func TestSanitizeStreamerConfigStorageDefaultsForProtobufDescriptor(t *testing.T) {
+	testSanitizeStreamerConfigStorageDefaultsForEncoder(t, nil, new(descriptorpb.DescriptorProto))
+}
+
+func TestSanitizeStreamerConfigStorageDefaultsWithoutEncoderConfig(t *testing.T) {
+	testSanitizeStreamerConfigStorageDefaultsForEncoder(t, nil, nil)
+}
+
+func testSanitizeStreamerConfigStorageDefaultsForEncoder(t *testing.T, schema *bigquery.Schema, protobufDes *descriptorpb.DescriptorProto) {
 	testCases := []struct {
 		InputMaxRetries    int
 		ExpectedMaxRetries int
@@ -508,6 +528,8 @@ func TestSanitizeStreamerConfigStorageDefaults(t *testing.T) {
 		// ... input
 		inputCfg := new(StreamerConfig)
 		inputCfg.StorageClient = &StorageClientConfig{
+			BigQuerySchema:         schema,
+			ProtobufDescriptor:     protobufDes,
 			MaxRetries:             testCase.InputMaxRetries,
 			InitialRetryDelay:      testCase.InputInitialRetryDelay,
 			MaxRetryDeadlineOffset: testCase.InputMaxRetryDeadlineOffset,

@@ -15,11 +15,14 @@
 package bqwriter
 
 import (
+	"errors"
 	"time"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/OTA-Insight/bqwriter/constant"
 	"github.com/OTA-Insight/bqwriter/internal"
 	"github.com/OTA-Insight/bqwriter/log"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 type (
@@ -106,6 +109,25 @@ type (
 	// A non-nil StorageClientConfig instance has to be passed in to the StorageClient property of
 	// a StreamerConfig in order to indicate the Streamer should be build using the Storage API Client under the hood.
 	StorageClientConfig struct {
+		// BigQuerySchema can be used in order to use a data encoder for the StorageClient
+		// based on a dynamically defined BigQuery schema in order to be able to encode any struct,
+		// JsonMarshaler, Json-encoded byte slice, Stringer (text proto) or string (also text proto)
+		// as a valid protobuf message based on the given BigQuery Schema.
+		//
+		// This config is required only if ProtobufDescriptor is not defined
+		// and it will be ignored in case ProtobufDescriptor is defined. The latter is recommended
+		// as a BigQuery Schema based encoder has a possible performance penalty.
+		BigQuerySchema *bigquery.Schema
+
+		// ProtobufDescriptor can be used in order to use a data encoder for the StorageClient
+		// based on a pre-compiled protobuf schema in order to be able to encode any proto Message
+		// adhering to this descriptor.
+		//
+		// This config is required only if BigQuerySchema is not defined.
+		// It is however recommended to use the The ProtobufDescriptor
+		// as a BigQuerySchema based encoder has a possible performance penalty.
+		ProtobufDescriptor *descriptorpb.DescriptorProto
+
 		// MaxRetries is the max amount of times that the retry logic will retry a retryable
 		// BQ write error, prior to giving up. Note that non-retryable errors will immediately stop
 		// and that there is also an upper limit of MaxTotalElpasedRetryTime to execute in worst case these max retries.
@@ -139,7 +161,7 @@ type (
 // sanitizeStreamerConfig is used to fill in some or all properties
 // with sane default values for the StreamerConfig.
 // Defined as a function to keep its logic contained and well tested.
-func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig) {
+func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig, err error) {
 	// we want to create a new config, as to not mutate an input param (the cfg),
 	// this comes at the cost of allocating extra memory, but as this is only expected
 	// to be used at setup time it should be ok, the memory gods will forgive us I'm sure
@@ -199,10 +221,13 @@ func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig) {
 
 	// only sanitize the Storage (client) Config if it is actually defined
 	// otherwise nil will be returned
-	sanCfg.StorageClient = sanitizeStorageClientConfig(cfg.StorageClient)
+	sanCfg.StorageClient, err = sanitizeStorageClientConfig(cfg.StorageClient)
+	if err != nil {
+		return nil, err
+	}
 
 	// return the sanitized named output config
-	return sanCfg
+	return sanCfg, nil
 }
 
 // sanitizeInsertAllClientConfig is used to fill in some or all properties
@@ -251,12 +276,16 @@ func sanitizeInsertAllClientConfig(cfg *InsertAllClientConfig) (sanCfg *InsertAl
 // sanitizeStorageClientConfig is used to fill in some or all properties
 // with sane default values for the StorageClientConfig.
 // Defined as a function to keep its logic contained and well tested.
-func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClientConfig) {
+func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClientConfig, err error) {
 	if cfg == nil {
 		// Nothing to do, no config is created if it already exists,
 		// given this is used within the API to create an InsertAll API client driven
 		// Streamer rather than a Storage API client driven streamer.
 		return
+	}
+	if cfg.ProtobufDescriptor == nil && cfg.BigQuerySchema == nil {
+		// nolint: goerr113
+		return nil, errors.New("StorageClientConfig invalid: either a Protobuf descriptor or BigQuery schema is required")
 	}
 
 	// we want to create a new config, as to not mutate an input param (the cfg),
@@ -306,5 +335,5 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	}
 
 	// return the sanitized named output non-nil config
-	return sanCfg
+	return sanCfg, nil
 }
