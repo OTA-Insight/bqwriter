@@ -170,11 +170,17 @@ bqWriter.Write(&myRow{Timestamp: time.UTC().Now(), Username: "test"})
 
 ### Storage Streamer
 
+If you can you should use the StorageStreamer. The InsertAll API is now considered legacy
+and is more expensive and less efficient to use compared to the storage API.
+
+Here follows an example on how you can create such a storage API driven BigQuery streamer.
+
 ```go
 import (
     "context"
 
     "github.com/OTA-Insight/bqwriter"
+    "google.golang.org/protobuf/reflect/protodesc"
 
     // TODO: define actual path to pre-compiled protobuf Go code
     "path/to/my/proto/package/protodata"
@@ -182,6 +188,9 @@ import (
 
 // TODO: use more specific context
 ctx := context.Background()
+
+// create proto descriptor to use for storage client
+protoDescriptor := protodesc.ToDescriptorProto((&protodata.MyCustomProtoMessage{}).ProtoReflect().Descriptor())
 
 // create a BQ (stream) writer thread-safe client,
 bqWriter, err := bqwriter.NewStreamer(
@@ -192,10 +201,9 @@ bqWriter, err := bqwriter.NewStreamer(
     &bqwriter.StreamerConfig{
         // use 5 background worker threads
         WorkerCount: 5,
-        // ignore errors for invalid/unknown rows/values,
-        // by default these errors make a write fail
+        // create the streamer using a Protobuf message encoder for the data
         StorageClient: &bqwriter.StorageClientConfig{
-            ProtobufDescriptor: (&protodata.MyCustomProtoMessage{}).ProtoReflect().Descriptor(),
+            ProtobufDescriptor: protoDescriptor,
         },
     },
 )
