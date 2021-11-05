@@ -57,6 +57,8 @@ func NewClient(projectID, dataSetID, tableID string, maxRetries int, initialRetr
 			projectID, dataSetID, tableID,
 		)),
 		managedwriter.WithDataOrigin("OTA-Insight/bqwriter"),
+		managedwriter.WithType(managedwriter.DefaultStream),
+		// managedwriter.WithSchemaDescriptor(descriptorProto),
 	)
 	if err != nil {
 		if err := writer.Close(); err != nil {
@@ -83,7 +85,7 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 	// NOTE: we do not define an offset here,
 	// as it would only be useful in case we want to do
 	// diagnostics with them
-	_, err = bqc.stream.AppendRows(bqc.ctx, binaryData, -1)
+	_, err = bqc.stream.AppendRows(bqc.ctx, binaryData, managedwriter.NoStreamOffset)
 	if err != nil {
 		return false, fmt.Errorf("BQ Storage Client: Stream: AppendRows: %w", err)
 	}
