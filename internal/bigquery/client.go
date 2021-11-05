@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bqwriter
+package bigquery
 
-// bqClient is the interface we expect a BQ client to implement.
+// Client is the interface we expect a BQ client to implement.
 // The only reason for this abstraction is so we can easily unit test this class,
 // without actual BQ interaction.
-type bqClient interface {
+type Client interface {
 	// Put a row of data, with the possibility to opt-out of any scheme validation.
 	//
 	// No context is passed here, instead background context is always used.

@@ -14,7 +14,7 @@
 // limitations under the License.
 
 //nolint: goerr113, wrapcheck
-package storage
+package managedwriter
 
 import (
 	"context"

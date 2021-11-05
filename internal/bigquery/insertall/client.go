@@ -25,8 +25,6 @@ import (
 	"github.com/OTA-Insight/bqwriter/log"
 )
 
-// TODO: move to internal/bigquery/insertall
-
 // Client implements the standard/official BQ (cloud) Client,
 // using the regular insertAll API with retry logic added on top of that. By default
 // the workers will also batch its received rows rather than writing them one by one,

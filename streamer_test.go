@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery"
 	"github.com/OTA-Insight/bqwriter/internal/test"
 	"github.com/OTA-Insight/bqwriter/log"
 )
@@ -54,7 +55,7 @@ func TestNewStreamerInputErrors(t *testing.T) {
 	}
 }
 
-// stubBQClient is an in-memory stub client for the bqClient interface,
+// stubBQClient is an in-memory stub client for the bigquery.Client interface,
 // allowing us to see what data is written into it
 type stubBQClient struct {
 	rows         []interface{}
@@ -64,7 +65,7 @@ type stubBQClient struct {
 	putSignal    chan<- struct{}
 }
 
-// Put implements bqClient::Put
+// Put implements bigquery.Client::Put
 func (sbqc *stubBQClient) Put(data interface{}) (bool, error) {
 	defer func() {
 		if sbqc.putSignal != nil {
@@ -98,7 +99,7 @@ func (sbqc *stubBQClient) Flush() error {
 	return nil
 }
 
-// Close implements bqClient::Close
+// Close implements bigquery.Client::Close
 func (sbqc *stubBQClient) Close() error {
 	if len(sbqc.nextErrors) > 0 {
 		err := sbqc.nextErrors[0]
@@ -170,7 +171,7 @@ type testStreamerConfig struct {
 func newTestStreamer(ctx context.Context, t *testing.T, cfg testStreamerConfig) (*stubBQClient, *Streamer) {
 	client := new(stubBQClient)
 	// always use same client for our purposes
-	clientBuilder := func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
+	clientBuilder := func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bigquery.Client, error) {
 		return client, nil
 	}
 	streamer, err := newStreamerWithClientBuilder(

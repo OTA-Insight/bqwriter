@@ -24,7 +24,9 @@ import (
 	"time"
 
 	"github.com/OTA-Insight/bqwriter/internal"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/insertall"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage"
 	"github.com/OTA-Insight/bqwriter/log"
 )
 
@@ -52,11 +54,19 @@ type streamerJob struct {
 func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
 	return newStreamerWithClientBuilder(
 		ctx,
-		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error) {
+		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bigquery.Client, error) {
 			if storageCfg != nil {
-				return nil, fmt.Errorf("create new streamer: using storage client: %w", internal.NotSupportedErr)
+				client, err := storage.NewClient(
+					projectID, dataSetID, tableID,
+					storageCfg.MaxRetries, storageCfg.InitialRetryDelay,
+					storageCfg.MaxRetryDeadlineOffset, storageCfg.RetryDelayMultiplier,
+					logger,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("BigQuery: NewStreamer: New Storage client: %w", err)
+				}
+				return client, nil
 			}
-
 			client, err := insertall.NewClient(
 				projectID, dataSetID, tableID,
 				!insertAllCfg.FailOnInvalidRows,
@@ -65,7 +75,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 				logger,
 			)
 			if err != nil {
-				return nil, fmt.Errorf("NewStreamer: New InsertAll client: %w", err)
+				return nil, fmt.Errorf("BigQuery: NewStreamer: New InsertAll client: %w", err)
 			}
 			return client, nil
 		},
@@ -74,7 +84,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 	)
 }
 
-type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bqClient, error)
+type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bigquery.Client, error)
 
 func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuilderFunc, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
 	if projectID == "" {
@@ -155,7 +165,7 @@ func (s *Streamer) Write(data interface{}) error {
 }
 
 // doWork defines the main loop of a Streamer's worker goroutine.
-func (s *Streamer) doWork(client bqClient, maxBatchDelay time.Duration) {
+func (s *Streamer) doWork(client bigquery.Client, maxBatchDelay time.Duration) {
 	defer func() {
 		err := client.Flush()
 		if err != nil {

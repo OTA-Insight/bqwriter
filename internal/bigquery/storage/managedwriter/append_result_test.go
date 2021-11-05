@@ -14,7 +14,7 @@
 // limitations under the License.
 
 // nolint: goerr113
-package storage
+package managedwriter
 
 import (
 	"errors"
