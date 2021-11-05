@@ -23,6 +23,8 @@
   which is only available sine Go 1.15:
     - Note this feature isn't critical so if ever required for a good reason,
       we can probably work around it and downgrade the min Go version once again;
+- updated dependencies to latest:
+  - google.golang.org/grpc: v1.42.0;
 
 Other updates made to the repository:
 
