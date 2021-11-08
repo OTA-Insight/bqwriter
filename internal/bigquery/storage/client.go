@@ -16,7 +16,9 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -139,7 +141,8 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 	// diagnostics with them. Once we would support CommittedStream than
 	// we do want to use the offset for tracking purposes.
 	result, err := bqc.stream.AppendRows(bqc.ctx, binaryData, managedwriter.NoStreamOffset)
-	if err != nil {
+	// TODO: confirm if EOF is here actually expected
+	if err != nil && !errors.Is(err, io.EOF) {
 		return false, fmt.Errorf("BQ Storage Client: Stream: AppendRows: %w", err)
 	}
 	bqc.appendResultCh <- result
