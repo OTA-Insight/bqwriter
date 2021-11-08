@@ -5,6 +5,9 @@
 - add batch upload support (https://cloud.google.com/bigquery/docs/batch-loading-data),
   this is a third client next to the already supported InsertAll (legacy) and storage API clients;
 - add benchmark code and results with production-ready Google Cloud infrastructure, load and data;
+- remove forked managedwriter code:
+  - managedwriter is still in active development and having to maintain our own copy would be almost a project on itself;
+  - author seems to be willing to fix our issues where appropriate;
 
 Bug Fixes:
 
