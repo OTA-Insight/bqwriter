@@ -26,10 +26,11 @@ import (
 )
 
 var (
-	autoDetectSchemaNotSupported = errors.New("usage of autodetect being true and schema being passed is not supported")
-	csvOptionsNotAllowed         = errors.New("csvOptions is only supported if the sourceFormat is CSV")
-	couldNotConvertReader        = errors.New("could not convert data into io.Reader")
-	schemaRequired               = errors.New("schema is required if autoDetect is false")
+	autoDetectAndSchemaNotSupported = errors.New("BQ batch: usage of autodetect being true and schema being passed is not supported")
+	autoDetectSchemaNotSupported    = errors.New("BQ batch: autoDetect is only supported for JSON and CSV format")
+	csvOptionsNotAllowed            = errors.New("BQ batch: csvOptions is only supported if the sourceFormat is CSV")
+	couldNotConvertReader           = errors.New("BQ batch: could not convert data into io.Reader")
+	schemaRequired                  = errors.New("BQ batch: schema is required if autoDetect is false")
 )
 
 // Client implements the standard/official BQ (cloud) Client,
@@ -66,7 +67,7 @@ func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues, autoDe
 
 	// If autoDetect is passed while the format is not JSON or CSV, error as this is only supported for csv.
 	if autoDetect && (sourceFormat != bigquery.JSON && sourceFormat != bigquery.CSV) {
-		return nil, fmt.Errorf("autoDetect is not supported for the sourceFormat %s", sourceFormat)
+		return nil, autoDetectAndSchemaNotSupported
 	}
 
 	// If autoDetect is passed and both the schema is passed error as these are mutually exclusive.
@@ -136,16 +137,16 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 	loader.WriteDisposition = bqc.writeDisposition
 	job, err := loader.Run(ctx)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("BQ batch: failed to run loader %w", err)
 	}
 	status, err := job.Wait(ctx)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("BQ batch: job failed while waiting %w", err)
 	}
 
 	if err := status.Err(); err != nil {
 		bqc.errors = status.Errors
-		return false, err
+		return false, fmt.Errorf("BQ batch: job returned an error status %w", err)
 	}
 
 	// we flush every time we write data.
