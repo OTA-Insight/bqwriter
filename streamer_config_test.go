@@ -61,6 +61,11 @@ var (
 		MaxRetryDeadlineOffset: constant.DefaultMaxRetryDeadlineOffset,
 		RetryDelayMultiplier:   constant.DefaultRetryDelayMultiplier,
 	}
+
+	expectedDefaultBatchClient = BatchClientConfig{
+		SourceFormat:     constant.DefaultSourceFormat,
+		WriteDisposition: constant.DefaultWriteDisposition,
+	}
 )
 
 func assertStreamerConfig(t *testing.T, inputCfg *StreamerConfig, expectedOuputCfg *StreamerConfig) {
@@ -108,11 +113,13 @@ func assertStreamerConfig(t *testing.T, inputCfg *StreamerConfig, expectedOuputC
 
 	// ensure that our output is as expected
 	test.AssertEqual(t, outputCfg.StorageClient, expectedOuputCfg.StorageClient)
-	// overwrite so our global deep equal check also passes
-	outputCfg.StorageClient = expectedOuputCfg.StorageClient
 	test.AssertEqual(t, outputCfg.InsertAllClient, expectedOuputCfg.InsertAllClient)
+	test.AssertEqual(t, outputCfg.BatchClient, expectedOuputCfg.BatchClient)
 	// overwrite so our global deep equal check also passes
 	outputCfg.InsertAllClient = expectedOuputCfg.InsertAllClient
+	outputCfg.StorageClient = expectedOuputCfg.StorageClient
+	outputCfg.BatchClient = expectedOuputCfg.BatchClient
+
 	// final global deep equal
 	test.AssertEqual(t, outputCfg, expectedOuputCfg)
 }
@@ -544,6 +551,94 @@ func testSanitizeStreamerConfigStorageDefaultsForEncoder(t *testing.T, schema *b
 			InitialRetryDelay:      testCase.ExpectedInitialRetryDelay,
 			MaxRetryDeadlineOffset: testCase.ExpectedMaxRetryDeadlineOffset,
 			RetryDelayMultiplier:   testCase.ExpectedRetryDelayMultiplier,
+		}
+		// and finally piggy-back on our other logic
+		assertStreamerConfig(t, inputCfg, expectedOutputCfg)
+	}
+}
+
+func TestSanitizeBatchConfigDefaults(t *testing.T) {
+	schema := bigquery.Schema{}
+	testCases := []struct {
+		InputBigQuerySchema    *bigquery.Schema
+		ExpectedBigQuerySchema *bigquery.Schema
+
+		InputSourceFormat    bigquery.DataFormat
+		ExpectedSourceFormat bigquery.DataFormat
+
+		InputFailForUnknownValues    bool
+		ExpectedFailForUnknownValues bool
+
+		InputCSVOptions    *bigquery.CSVOptions
+		ExpectedCSVOptions *bigquery.CSVOptions
+
+		InputWriteDisposition    bigquery.TableWriteDisposition
+		ExpectedWriteDisposition bigquery.TableWriteDisposition
+
+		ExpectedAutoDetect bool
+	}{
+		{
+			ExpectedSourceFormat:     expectedDefaultBatchClient.SourceFormat,
+			ExpectedWriteDisposition: expectedDefaultBatchClient.WriteDisposition,
+			ExpectedAutoDetect:       true,
+		},
+		{
+			InputBigQuerySchema:      &schema,
+			ExpectedBigQuerySchema:   &schema,
+			ExpectedSourceFormat:     expectedDefaultBatchClient.SourceFormat,
+			ExpectedWriteDisposition: expectedDefaultBatchClient.WriteDisposition,
+		},
+		{
+			InputBigQuerySchema:      &schema,
+			ExpectedBigQuerySchema:   &schema,
+			InputSourceFormat:        bigquery.CSV,
+			ExpectedSourceFormat:     bigquery.CSV,
+			ExpectedWriteDisposition: expectedDefaultBatchClient.WriteDisposition,
+		},
+		{
+			InputBigQuerySchema:      &schema,
+			ExpectedBigQuerySchema:   &schema,
+			InputSourceFormat:        bigquery.CSV,
+			ExpectedSourceFormat:     bigquery.CSV,
+			InputWriteDisposition:    bigquery.WriteTruncate,
+			ExpectedWriteDisposition: bigquery.WriteTruncate,
+		},
+		{
+			InputSourceFormat:        bigquery.CSV,
+			ExpectedSourceFormat:     bigquery.CSV,
+			ExpectedWriteDisposition: expectedDefaultBatchClient.WriteDisposition,
+			ExpectedAutoDetect:       true,
+		},
+		{
+			ExpectedSourceFormat:     expectedDefaultBatchClient.SourceFormat,
+			InputWriteDisposition:    bigquery.WriteTruncate,
+			ExpectedWriteDisposition: bigquery.WriteTruncate,
+			ExpectedAutoDetect:       true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		// we create our input & expected out cfg,
+		// which we can do by starting from the default cfg and simply
+		// assigning our fresh variables
+		// ... input
+		inputCfg := new(StreamerConfig)
+		inputCfg.BatchClient = &BatchClientConfig{
+			BigQuerySchema:       testCase.InputBigQuerySchema,
+			SourceFormat:         testCase.InputSourceFormat,
+			FailForUnknownValues: testCase.InputFailForUnknownValues,
+			CSVOptions:           testCase.InputCSVOptions,
+			WriteDisposition:     testCase.InputWriteDisposition,
+		}
+		// ... expected output
+		expectedOutputCfg := deepCloneStreamerConfig(&expectedDefaultStreamerConfig)
+		expectedOutputCfg.BatchClient = &BatchClientConfig{
+			BigQuerySchema:       testCase.ExpectedBigQuerySchema,
+			SourceFormat:         testCase.ExpectedSourceFormat,
+			FailForUnknownValues: testCase.ExpectedFailForUnknownValues,
+			CSVOptions:           testCase.ExpectedCSVOptions,
+			WriteDisposition:     testCase.ExpectedWriteDisposition,
+			autoDetect:           testCase.ExpectedAutoDetect,
 		}
 		// and finally piggy-back on our other logic
 		assertStreamerConfig(t, inputCfg, expectedOutputCfg)

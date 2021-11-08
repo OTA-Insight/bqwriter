@@ -433,8 +433,8 @@ func sanitizeBatchClientConfig(cfg *BatchClientConfig) (batchCfg *BatchClientCon
 		return nil, internal.AutoDetectSchemaNotSupportedErr
 	}
 
-	if cfg.BigQuerySchema == nil {
-		cfg.autoDetect = true
+	if batchCfg.BigQuerySchema == nil {
+		batchCfg.autoDetect = true
 	}
 
 	return batchCfg, nil
