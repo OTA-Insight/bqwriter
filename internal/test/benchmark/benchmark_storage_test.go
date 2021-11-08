@@ -8,7 +8,6 @@ import (
 
 	"github.com/OTA-Insight/bqwriter"
 	"google.golang.org/protobuf/reflect/protodesc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // NOTE: created an issue about nested type errors:
@@ -17,11 +16,11 @@ import (
 func BenchmarkStorageStreamerDefault(b *testing.B) {
 	// TODO: how can we have these nested types automatically included?
 	protoDescriptor := protodesc.ToDescriptorProto((&TemporaryDataProto3{}).ProtoReflect().Descriptor())
-	protoDescriptor.NestedType = append(
-		protoDescriptor.NestedType,
-		protodesc.ToDescriptorProto((&timestamppb.Timestamp{}).ProtoReflect().Descriptor()),
-		protodesc.ToDescriptorProto((&TemporaryDataParameterProto3{}).ProtoReflect().Descriptor()),
-	)
+	// protoDescriptor.NestedType = append(
+	// 	protoDescriptor.NestedType,
+	// 	protodesc.ToDescriptorProto((&timestamppb.Timestamp{}).ProtoReflect().Descriptor()),
+	// 	protodesc.ToDescriptorProto((&TemporaryDataParameterProto3{}).ProtoReflect().Descriptor()),
+	// )
 	streamer, err := bqwriter.NewStreamer(
 		context.Background(),
 		benchmarkBigQueryProjectID,
@@ -72,7 +71,7 @@ func benchmarkStorageStreamerForParameters(b *testing.B, workerCount int, worker
 			"workeCount=%d;workerQueue=%d;maxBatchDelay=%v",
 			workerCount, workerQueueSize, maxBatchDelay,
 		),
-		streamer, NewTmpData,
+		streamer, NewProtoTmpData,
 	)
 }
 
