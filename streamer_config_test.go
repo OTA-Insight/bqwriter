@@ -54,8 +54,6 @@ var (
 			MaxRetryDeadlineOffset: constant.DefaultMaxRetryDeadlineOffset,
 		},
 	}
-
-	expectedDefaultStorageClient = StorageClientConfig{}
 )
 
 func assertStreamerConfig(t *testing.T, inputCfg *StreamerConfig, expectedOuputCfg *StreamerConfig) {
