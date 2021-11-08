@@ -46,7 +46,7 @@ func newTestClient(t *testing.T, cfg *TestClientConfig) (*Client, error) {
 }
 
 func TestBatchClientValidConfig(t *testing.T) {
-	client, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON, AutoDetect: true})
+	client, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON, AutoDetect: true, WriteDisposition: bigquery.WriteAppend})
 	test.AssertNoError(t, err)
 
 	test.AssertTrue(t, client.autoDetect)
