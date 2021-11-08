@@ -80,7 +80,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 
 				encoder, err := encoding.NewSchemaEncoder(*storageCfg.BigQuerySchema)
 				if err != nil {
-					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-schema encoding Storage client: create schema encoder: %w", err)
+					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: create schema encoder: %w", err)
 				}
 				client, err := storage.NewClient(
 					projectID, dataSetID, tableID,
@@ -90,7 +90,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 					logger,
 				)
 				if err != nil {
-					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-schema encoding Storage client: %w", err)
+					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: %w", err)
 				}
 				return client, nil
 			}
@@ -104,7 +104,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 				)
 
 				if err != nil {
-					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-schema encoding Batch client: %w", err)
+					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema Batch client: %w", err)
 				}
 				return client, nil
 			}
