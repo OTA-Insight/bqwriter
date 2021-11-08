@@ -26,11 +26,11 @@ import (
 )
 
 var (
-	autoDetectAndSchemaNotSupported = errors.New("BQ batch: usage of autodetect being true and schema being passed is not supported")
-	autoDetectSchemaNotSupported    = errors.New("BQ batch: autoDetect is only supported for JSON and CSV format")
-	csvOptionsNotAllowed            = errors.New("BQ batch: csvOptions is only supported if the sourceFormat is CSV")
-	couldNotConvertReader           = errors.New("BQ batch: could not convert data into io.Reader")
-	schemaRequired                  = errors.New("BQ batch: schema is required if autoDetect is false")
+	autoDetectAndSchemaNotSupported = errors.New("BQ batch client: usage of autodetect being true and schema being passed is not supported")
+	autoDetectSchemaNotSupported    = errors.New("BQ batch client: autoDetect is only supported for JSON and CSV format")
+	csvOptionsNotAllowed            = errors.New("BQ batch client: csvOptions is only supported if the sourceFormat is CSV")
+	couldNotConvertReader           = errors.New("BQ batch client: could not convert data into io.Reader")
+	schemaRequired                  = errors.New("BQ batch client: schema is required if autoDetect is false")
 )
 
 // Client implements the standard/official BQ (cloud) Client,
@@ -65,7 +65,7 @@ func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues, autoDe
 	// This is a requirement given the streamer will batch its rows.
 	client, err := bigquery.NewClient(context.Background(), projectID)
 	if err != nil {
-		return nil, fmt.Errorf("create BQ batch Client: %w", err)
+		return nil, fmt.Errorf("BQ batch client: creation failed %w", err)
 	}
 
 	return newClient(
@@ -78,10 +78,10 @@ func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues, autoDe
 
 func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknownValues, autoDetect bool, sourceFormat bigquery.DataFormat, writeDisposition *bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
 	if dataSetID == "" {
-		return nil, fmt.Errorf("bq insertAll client creation: validate dataSetID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("BQ batch client: validate dataSetID: %w: missing", internal.InvalidParamErr)
 	}
 	if tableID == "" {
-		return nil, fmt.Errorf("bq insertAll client creation: validate tableID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("BQ batch client: validate tableID: %w: missing", internal.InvalidParamErr)
 	}
 
 	// If autoDetect is passed while the format is not JSON or CSV, error as this is only supported for csv.
@@ -147,16 +147,16 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 	loader.WriteDisposition = bqc.writeDisposition
 	job, err := loader.Run(ctx)
 	if err != nil {
-		return false, fmt.Errorf("BQ batch: failed to run loader %w", err)
+		return false, fmt.Errorf("BQ batch client: failed to run loader %w", err)
 	}
 	status, err := job.Wait(ctx)
 	if err != nil {
-		return false, fmt.Errorf("BQ batch: job failed while waiting %w", err)
+		return false, fmt.Errorf("BQ batch client: job failed while waiting %w", err)
 	}
 
 	if err := status.Err(); err != nil {
 		bqc.errors = status.Errors
-		return false, fmt.Errorf("BQ batch: job returned an error status %w", err)
+		return false, fmt.Errorf("BQ batch client: job returned an error status %w", err)
 	}
 
 	// we flush every time we write data.
@@ -175,7 +175,7 @@ func (bqc *Client) Close() error {
 	// as this is an internal client used by Streamer only,
 	// which does flush prior to closing it :)
 	if err := bqc.client.Close(); err != nil {
-		return fmt.Errorf("close thick batch BQ client: %w", err)
+		return fmt.Errorf("BQ batch client: failed while closing %w", err)
 	}
 	return nil
 }
