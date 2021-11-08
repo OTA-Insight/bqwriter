@@ -22,4 +22,8 @@ var (
 
 	// internal error used in case a feature still in development was already used.
 	NotSupportedErr = errors.New("not supported")
+
+	MutuallyExclusiveConfigsErr     = errors.New("you cannot define both a storage Client and a batch client at once")
+	AutoDetectSchemaNotSupportedErr = errors.New("BQ batch client: autoDetect is only supported for JSON and CSV format")
+	ProtobufOrSChemaRequiredErr     = errors.New("StorageClientConfig invalid: either a Protobuf descriptor or BigQuery schema is required")
 )

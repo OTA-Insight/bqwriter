@@ -30,13 +30,6 @@ import (
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
 	"github.com/OTA-Insight/bqwriter/log"
-
-	bq "cloud.google.com/go/bigquery"
-)
-
-var (
-	mutuallyExclusiveConfigsErr     = errors.New("you cannot define both a storage Client and a batch client at once")
-	autoDetectSchemaNotSupportedErr = errors.New("BQ batch client: autoDetect is only supported for JSON and CSV format")
 )
 
 // Streamer is a simple BQ stream-writer, allowing you
@@ -65,7 +58,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 		ctx,
 		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig, batchCfg *BatchClientConfig) (bigquery.Client, error) {
 			if storageCfg != nil && batchCfg != nil {
-				return nil, mutuallyExclusiveConfigsErr
+				return nil, internal.MutuallyExclusiveConfigsErr
 			}
 
 			if storageCfg != nil {
@@ -98,34 +91,11 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: %w", err)
 				}
 				return client, nil
-			}
-
-			if batchCfg != nil {
-				sourceFormat := bq.JSON
-				if batchCfg.SourceFormat != nil {
-					sourceFormat = *batchCfg.SourceFormat
-				}
-
-				// If the format is not JSON or CSV and no schema is provided, error as this is only supported for json and csv.
-				if batchCfg.BigQuerySchema == nil && (sourceFormat != bq.JSON && sourceFormat != bq.CSV) {
-					return nil, autoDetectSchemaNotSupportedErr
-				}
-
-				// If the schema is nil, set the autodetect flag as true
-				autoDetect := true
-				if batchCfg.BigQuerySchema == nil {
-					autoDetect = true
-				}
-
-				writeDisposition := bq.WriteAppend
-				if batchCfg.WriteDisposition != nil {
-					writeDisposition = *batchCfg.WriteDisposition
-				}
-
+			} else if batchCfg != nil {
 				client, err := batch.NewClient(
 					projectID, dataSetID, tableID,
-					!batchCfg.FailForUnknownValues, autoDetect,
-					sourceFormat, writeDisposition,
+					!batchCfg.FailForUnknownValues, batchCfg.autoDetect,
+					batchCfg.SourceFormat, batchCfg.WriteDisposition,
 					batchCfg.BigQuerySchema, batchCfg.CSVOptions,
 				)
 

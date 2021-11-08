@@ -118,13 +118,13 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 		return false, fmt.Errorf("BQ batch client: job returned an error status %w", err)
 	}
 
-	// we flush every time we write data.
+	// We flush every time when we write data.
 	return true, nil
 }
 
 // Flush implements bigquery.Client::Flush
 func (bqc *Client) Flush() error {
-	// NOTE: flushing is only equired once we support non-default streams
+	// NOTE: The data is always flushed instantly upon putting the data.
 	return nil
 }
 

@@ -26,6 +26,8 @@ import (
 	"github.com/OTA-Insight/bqwriter/internal/bigquery"
 	"github.com/OTA-Insight/bqwriter/internal/test"
 	"github.com/OTA-Insight/bqwriter/log"
+
+	bq "cloud.google.com/go/bigquery"
 )
 
 func TestNewStreamerInputErrors(t *testing.T) {
@@ -232,4 +234,21 @@ func TestStreamerFlushCount(t *testing.T) {
 	client.AssertFlushCount(t, 1)
 	streamer.Close()
 	client.AssertFlushCount(t, 2)
+}
+
+func TestNewStreamerMutuallyExclusiveConfigErr(t *testing.T) {
+	storageClient := new(StorageClientConfig)
+	storageClient.BigQuerySchema = &bq.Schema{}
+	batchClient := new(BatchClientConfig)
+	_, err := NewStreamer(
+		context.Background(),
+		"a", "b", "c",
+		&StreamerConfig{
+			StorageClient: storageClient,
+			BatchClient:   batchClient,
+		},
+	)
+
+	test.AssertError(t, err)
+	test.AssertIsError(t, err, internal.MutuallyExclusiveConfigsErr)
 }

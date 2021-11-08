@@ -27,7 +27,7 @@ type TestClientConfig struct {
 	SourceFormat     bigquery.DataFormat
 	AutoDetect       bool
 	CSVOptions       *bigquery.CSVOptions
-	WriteDisposition *bigquery.TableWriteDisposition
+	WriteDisposition bigquery.TableWriteDisposition
 }
 
 func newTestClient(t *testing.T, cfg *TestClientConfig) (*Client, error) {
@@ -54,39 +54,6 @@ func TestBatchClientValidConfig(t *testing.T) {
 	test.AssertNil(t, client.csvOptions)
 	test.AssertNil(t, client.schema)
 	test.AssertEqual(t, client.writeDisposition, bigquery.WriteAppend)
-}
-
-func TestBatchClientValidConfigDisposition(t *testing.T) {
-	writeDisposition := bigquery.WriteTruncate
-
-	client, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON, AutoDetect: true, WriteDisposition: &writeDisposition})
-	test.AssertNoError(t, err)
-
-	test.AssertTrue(t, client.autoDetect)
-	test.AssertEqual(t, client.sourceFormat, bigquery.JSON)
-	test.AssertNil(t, client.csvOptions)
-	test.AssertNil(t, client.schema)
-	test.AssertEqual(t, client.writeDisposition, bigquery.WriteTruncate)
-}
-
-func TestBatchClientInvalidConfigAutoDetect(t *testing.T) {
-	_, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.Avro, AutoDetect: true})
-	test.AssertError(t, err)
-}
-
-func TestBatchClientInvalidConfigMissingSchema(t *testing.T) {
-	_, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.Avro, AutoDetect: false})
-	test.AssertError(t, err)
-}
-
-func TestBatchClientInvalidConfigAutoDetectAndSchema(t *testing.T) {
-	_, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON, AutoDetect: true, BigQuerySchema: &bigquery.Schema{}})
-	test.AssertError(t, err)
-}
-
-func TestBatchClientInvalidConfigCSVOptions(t *testing.T) {
-	_, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON, CSVOptions: &bigquery.CSVOptions{}})
-	test.AssertError(t, err)
 }
 
 func TestBatchClientInvalidData(t *testing.T) {

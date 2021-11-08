@@ -15,7 +15,6 @@
 package bqwriter
 
 import (
-	"errors"
 	"time"
 
 	"cloud.google.com/go/bigquery"
@@ -180,7 +179,7 @@ type (
 		//   - bigquery.ORC
 		//
 		// The default SourceFormat is bigquery.JSON
-		SourceFormat *bigquery.DataFormat
+		SourceFormat bigquery.DataFormat
 
 		// FailForUnknownValues causes records containing such values
 		// to be treated as invalid records.
@@ -199,7 +198,12 @@ type (
 		//   - bigquery.WriteEmpty
 		//
 		// Defaults to bigquery.WriteAppend, which will append the data to the table.
-		WriteDisposition *bigquery.TableWriteDisposition
+		WriteDisposition bigquery.TableWriteDisposition
+
+		// autoDetect is used internally to indicate that the bigquery client will determine the data format from the
+		// given data. This value will be set to true if the BigQuerySchema is nil (e.g. unspecified) and if the
+		// SourceFormat is bigquery.CSV or bigquery.JSON.
+		autoDetect bool
 	}
 )
 
@@ -271,6 +275,13 @@ func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig, err er
 		return nil, err
 	}
 
+	// only sanitize the Batch (client) Config if it is actually defined
+	// otherwise nil will be returned
+	sanCfg.BatchClient, err = sanitizeBatchClientConfig(cfg.BatchClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// return the sanitized named output config
 	return sanCfg, nil
 }
@@ -329,8 +340,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 		return
 	}
 	if cfg.ProtobufDescriptor == nil && cfg.BigQuerySchema == nil {
-		// nolint: goerr113
-		return nil, errors.New("StorageClientConfig invalid: either a Protobuf descriptor or BigQuery schema is required")
+		return nil, internal.ProtobufOrSChemaRequiredErr
 	}
 
 	// we want to create a new config, as to not mutate an input param (the cfg),
@@ -386,4 +396,46 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 
 	// return the sanitized named output non-nil config
 	return sanCfg, nil
+}
+
+// sanitizeBatchClientConfig is used to fill in some or all properties
+// with sane default values for the BatchClientConfig.
+// Defined as a function to keep its logic contained and well tested.
+func sanitizeBatchClientConfig(cfg *BatchClientConfig) (batchCfg *BatchClientConfig, err error) {
+	if cfg == nil {
+		return
+	}
+
+	// we want to create a new config, as to not mutate an input param (the cfg),
+	// this comes at the cost of allocating extra memory, but as this is only expected
+	// to be used at setup time it should be ok, the memory gods will forgive us I'm sure
+	batchCfg = new(BatchClientConfig)
+
+	// simply assign the schema and boolean related properties.
+	// no need for any validation there.
+	batchCfg.BigQuerySchema = cfg.BigQuerySchema
+	batchCfg.FailForUnknownValues = cfg.FailForUnknownValues
+
+	if cfg.SourceFormat != "" {
+		batchCfg.SourceFormat = cfg.SourceFormat
+	} else {
+		batchCfg.SourceFormat = constant.DefaultSourceFormat
+	}
+
+	if cfg.WriteDisposition != "" {
+		batchCfg.WriteDisposition = cfg.WriteDisposition
+	} else {
+		batchCfg.WriteDisposition = constant.DefaultWriteDisposition
+	}
+
+	// If the format is not JSON or CSV and no schema is provided, error as this is only supported for json and csv.
+	if batchCfg.BigQuerySchema == nil && (batchCfg.SourceFormat != bigquery.JSON && batchCfg.SourceFormat != bigquery.CSV) {
+		return nil, internal.AutoDetectSchemaNotSupportedErr
+	}
+
+	if cfg.BigQuerySchema == nil {
+		cfg.autoDetect = true
+	}
+
+	return batchCfg, nil
 }
