@@ -68,6 +68,11 @@ type (
 		// You can do so using `new(StorageClientConfig)` in order to create a StorageClient
 		// with all possible configurations configured using their defaults as defined by this Go package.
 		StorageClient *StorageClientConfig
+
+		// BatchClient allows you to create a Batch API driven Streamer client.
+		// You can do so using `new(BatchClientConfig)` in order to create a BatchClient
+		// with all possible configurations configured using their defaults as defined by this Go package.
+		BatchClient *BatchClientConfig
 	}
 
 	// InsertAllClientConfig is used to configure an InsertAll client API driven Streamer Client.
@@ -155,6 +160,53 @@ type (
 		//
 		// Defaults to constant.DefaultRetryDelayMultiplier if RetryDelayMultiplier < 1, as 2 is also the lowest possible multiplier accepted.
 		RetryDelayMultiplier float64
+	}
+
+	BatchClientConfig struct {
+		// BigQuerySchema can be used in order to use a data encoder for the batchClient
+		// based on a dynamically defined BigQuery schema in order to be able to encode any struct,
+		// JsonMarshaler, Json-encoded byte slice, Stringer (text proto) or string (also text proto)
+		// as a valid protobuf message based on the given BigQuery Schema.
+		//
+		// This config is required only if autoDetect is false.
+		BigQuerySchema *bigquery.Schema
+
+		// SourceFormat is used to define the format that the data is that we will send.
+		// Possible options are:
+		//   - bigquery.CSV
+		//   - bigquery.Avro
+		//   - bigquery.JSON
+		//   - bigquery.Parquet
+		//   - bigquery.ORC
+		SourceFormat bigquery.DataFormat
+
+		// AutoDetect can be used so that the client will determine the data format from the data
+		// that needs to be uploaded
+		// This is only supported if the SourceFormat is bigquery.CSV or bigquery.JSON
+		// This option is mutually exclusive with the BigQuerySchema option.
+		//
+		// Defaults to false
+		AutoDetect bool
+
+		// FailForUnknownValues causes records containing such values
+		// to be treated as invalid records.
+		//
+		// Defaults to false, making it ignore any invalid values, silently ignoring these errors,
+		// and publishing the rows with the unknown values removed from them.
+		FailForUnknownValues bool
+
+		// CSVOptions can be used to define what CSV options should be set for a CSV upload
+		// This option is only allowed if the SourceFormat is bigquery.CSV
+		CSVOptions *bigquery.CSVOptions
+
+		// WriteDisposition can be used to define what the write disposition should be to the bigquery table
+		// Possible options are:
+		//   - bigquery.WriteAppend
+		//   - bigquery.WriteTruncate
+		//   - bigquery.WriteEmpty
+		//
+		// Defaults to bigquery.WriteAppend, which will append the data to the table
+		WriteDisposition *bigquery.TableWriteDisposition
 	}
 )
 
