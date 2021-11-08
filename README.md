@@ -191,6 +191,8 @@ ctx := context.Background()
 
 // create proto descriptor to use for storage client
 protoDescriptor := protodesc.ToDescriptorProto((&protodata.MyCustomProtoMessage{}).ProtoReflect().Descriptor())
+// NOTE: in case you also have nested types, from yourself or known types from Google,
+// you'll have to create their descriptors using the same line as above and add it to the list under `protoDescriptor.NestedTypes`
 
 // create a BQ (stream) writer thread-safe client,
 bqWriter, err := bqwriter.NewStreamer(

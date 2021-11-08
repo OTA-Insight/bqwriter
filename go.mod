@@ -17,7 +17,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v0.6.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/googleapis/gax-go v1.0.3
-	github.com/loov/hrtime v1.0.3 // indirect
+	github.com/loov/hrtime v1.0.3
 	golang.org/x/exp v0.0.0-20211105205138-14c72366447f // indirect
 	golang.org/x/net v0.0.0-20211105192438-b53810dc28af // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect

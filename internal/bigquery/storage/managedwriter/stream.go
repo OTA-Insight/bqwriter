@@ -287,7 +287,10 @@ func (ms *ManagedStream) Close() error {
 	if ms.cancel != nil {
 		ms.cancel()
 	}
-	return fmt.Errorf("BQStorage: ManagedStream: Close: %w", err)
+	if err != nil {
+		return fmt.Errorf("BQStorage: ManagedStream: Close: %w", err)
+	}
+	return nil
 }
 
 // AppendRows sends the append requests to the service, and returns a single AppendResult for tracking
