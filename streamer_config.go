@@ -168,7 +168,7 @@ type (
 		// JsonMarshaler, Json-encoded byte slice, Stringer (text proto) or string (also text proto)
 		// as a valid protobuf message based on the given BigQuery Schema.
 		//
-		// This config is required only if autoDetect is false.
+		// This config is only required if autoDetect is false.
 		BigQuerySchema *bigquery.Schema
 
 		// SourceFormat is used to define the format that the data is that we will send.
@@ -185,7 +185,7 @@ type (
 		// This is only supported if the SourceFormat is bigquery.CSV or bigquery.JSON
 		// This option is mutually exclusive with the BigQuerySchema option.
 		//
-		// Defaults to false
+		// Defaults to false.
 		AutoDetect bool
 
 		// FailForUnknownValues causes records containing such values
@@ -196,16 +196,16 @@ type (
 		FailForUnknownValues bool
 
 		// CSVOptions can be used to define what CSV options should be set for a CSV upload
-		// This option is only allowed if the SourceFormat is bigquery.CSV
+		// This option is only allowed if the SourceFormat is bigquery.CSV.
 		CSVOptions *bigquery.CSVOptions
 
-		// WriteDisposition can be used to define what the write disposition should be to the bigquery table
+		// WriteDisposition can be used to define what the write disposition should be to the bigquery table.
 		// Possible options are:
 		//   - bigquery.WriteAppend
 		//   - bigquery.WriteTruncate
 		//   - bigquery.WriteEmpty
 		//
-		// Defaults to bigquery.WriteAppend, which will append the data to the table
+		// Defaults to bigquery.WriteAppend, which will append the data to the table.
 		WriteDisposition *bigquery.TableWriteDisposition
 	}
 )
