@@ -20,17 +20,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/OTA-Insight/bqwriter/internal"
-
 	"cloud.google.com/go/bigquery"
 )
 
 var (
-	autoDetectAndSchemaNotSupported = errors.New("BQ batch client: usage of autodetect being true and schema being passed is not supported")
-	autoDetectSchemaNotSupported    = errors.New("BQ batch client: autoDetect is only supported for JSON and CSV format")
-	csvOptionsNotAllowed            = errors.New("BQ batch client: csvOptions is only supported if the sourceFormat is CSV")
-	couldNotConvertReader           = errors.New("BQ batch client: could not convert data into io.Reader")
-	schemaRequired                  = errors.New("BQ batch client: schema is required if autoDetect is false")
+	couldNotConvertReaderErr = errors.New("BQ batch client: could not convert data into io.Reader")
 )
 
 // Client implements the standard/official BQ (cloud) Client,
@@ -54,11 +48,7 @@ type Client struct {
 }
 
 // NewClient creates a new Client.
-func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues, autoDetect bool, sourceFormat bigquery.DataFormat, writeDisposition *bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
-	if projectID == "" {
-		return nil, fmt.Errorf("bq insertAll client creation: validate projectID: %w: missing", internal.InvalidParamErr)
-	}
-
+func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues, autoDetect bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
 	// NOTE: we are using the background Context,
 	// as to ensure that we can always write to the client,
 	// even when the actual parent context is already done.
@@ -76,38 +66,7 @@ func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues, autoDe
 	)
 }
 
-func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknownValues, autoDetect bool, sourceFormat bigquery.DataFormat, writeDisposition *bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
-	if dataSetID == "" {
-		return nil, fmt.Errorf("BQ batch client: validate dataSetID: %w: missing", internal.InvalidParamErr)
-	}
-	if tableID == "" {
-		return nil, fmt.Errorf("BQ batch client: validate tableID: %w: missing", internal.InvalidParamErr)
-	}
-
-	// If autoDetect is passed while the format is not JSON or CSV, error as this is only supported for csv.
-	if autoDetect && (sourceFormat != bigquery.JSON && sourceFormat != bigquery.CSV) {
-		return nil, autoDetectAndSchemaNotSupported
-	}
-
-	// If autoDetect is passed and both the schema is passed error as these are mutually exclusive.
-	if autoDetect && schema != nil {
-		return nil, autoDetectSchemaNotSupported
-	}
-
-	if !autoDetect && schema == nil {
-		return nil, schemaRequired
-	}
-
-	// csvOptions is only allowed if the sourceFormat is CSV.
-	if csvOptions != nil && sourceFormat != bigquery.CSV {
-		return nil, csvOptionsNotAllowed
-	}
-
-	tableWriteDisposition := bigquery.WriteAppend
-	if writeDisposition != nil {
-		tableWriteDisposition = *writeDisposition
-	}
-
+func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknownValues, autoDetect bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
 	return &Client{
 		client: client,
 
@@ -119,7 +78,7 @@ func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknown
 		autoDetect:          autoDetect,
 		ignoreUnknownValues: ignoreUnknownValues,
 		csvOptions:          csvOptions,
-		writeDisposition:    tableWriteDisposition,
+		writeDisposition:    writeDisposition,
 	}, nil
 }
 
@@ -127,7 +86,7 @@ func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknown
 func (bqc *Client) Put(data interface{}) (bool, error) {
 	reader, ok := data.(io.Reader)
 	if !ok {
-		return false, couldNotConvertReader
+		return false, couldNotConvertReaderErr
 	}
 
 	ctx := context.Background()

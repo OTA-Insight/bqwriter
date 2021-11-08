@@ -178,15 +178,9 @@ type (
 		//   - bigquery.JSON
 		//   - bigquery.Parquet
 		//   - bigquery.ORC
-		SourceFormat bigquery.DataFormat
-
-		// AutoDetect can be used so that the client will determine the data format from the data
-		// that needs to be uploaded
-		// This is only supported if the SourceFormat is bigquery.CSV or bigquery.JSON
-		// This option is mutually exclusive with the BigQuerySchema option.
 		//
-		// Defaults to false.
-		AutoDetect bool
+		// The default SourceFormat is bigquery.JSON
+		SourceFormat *bigquery.DataFormat
 
 		// FailForUnknownValues causes records containing such values
 		// to be treated as invalid records.
@@ -196,7 +190,6 @@ type (
 		FailForUnknownValues bool
 
 		// CSVOptions can be used to define what CSV options should be set for a CSV upload
-		// This option is only allowed if the SourceFormat is bigquery.CSV.
 		CSVOptions *bigquery.CSVOptions
 
 		// WriteDisposition can be used to define what the write disposition should be to the bigquery table.

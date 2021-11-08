@@ -262,64 +262,62 @@ import (
     "cloud.google.com/go/bigquery"
 )
 
-// TODO: use more specific context
-ctx := context.Background()
-
-// create a BQ (stream) writer thread-safe client,
-bqWriter, err := bqwriter.NewStreamer(
-    ctx,
-    "my-gcloud-project",
-    "my-bq-dataset",
-    "my-bq-table",
-    &bqwriter.StreamerConfig{
-        // use 5 background worker threads
-        WorkerCount: 5,
-        // create the client with the JSON format and using autodetect
-        BatchClient: &bqwriter.BatchClientConfig{
-            AutoDetect: true,
-			SourceFormat: bigquery.JSON
+func main() {
+    ctx := context.Background()
+    
+    // create a BQ (stream) writer thread-safe client,
+    bqWriter, err := bqwriter.NewStreamer(
+        ctx,
+        "my-gcloud-project",
+        "my-bq-dataset",
+        "my-bq-table",
+        &bqwriter.StreamerConfig{
+            BatchClient: &bqwriter.BatchClientConfig{
+                AutoDetect:   true,
+                SourceFormat: bigquery.JSON,
+            },
         },
-    },
-)
-)
-if err != nil {
-    // TODO: handle error gracefully
-    panic(err)
-}
-// do not forget to close, to close all background resources opened
-// when creating the BQ (stream) writer client
-defer bqWriter.Close()
+    )
 
-// Create some data, make sure your data implements the io.Reader interface so it can be used!
-type person struct {
-    ID int `json:"id"`
-    Name int `json:"name"`
-}
-
-data := []person{
-    {
-        ID: 1,
-        Name: "John"
-    },
-    {
-        ID: 2,
-        Name: "Jane"
+    if err != nil {
+        // TODO: handle error gracefully
+        panic(err)
     }
-}
+		
+    // do not forget to close, to close all background resources opened
+    // when creating the BQ (stream) writer client
+	defer bqWriter.Close()
 
-// Convert the data into a reader.
-var buffer bytes.Buffer
-for r := range data {
-    body, _ := json.Marshal(r)
-    buffer.Write(body)
-    buffer.WriteString("\n") // If the format is JSON, make sure every row is on a newline.
-}
+    // Create some data, make sure your data implements the io.Reader interface so it can be used!
+    type person struct {
+        ID   int    `json:"id"`
+        Name string `json:"name"`
+    }
+    data := []person{
+        {
+            ID:   1,
+            Name: "John",
+        },
+        {
+            ID:   2,
+            Name: "Jane",
+        },
+    }
 
-// Write the data to bigquery.
-_, err := bqWriter.Put(bytes.NewReader(buffer.Bytes()))
-if err != nil {
-    // TODO: handle error gracefully
-    panic(err)
+    // Convert the data into a reader.
+    var buffer bytes.Buffer
+    for _, r := range data {
+        body, _ := json.Marshal(r)
+        buffer.Write(body)
+        buffer.WriteString("\n") // If the format is JSON, make sure every row is on a newline.
+    }
+
+    // Write the data to bigquery.
+    _, err := bqWriter.Put(bytes.NewReader(buffer.Bytes()))
+    if err != nil {
+        // TODO: handle error gracefully
+        panic(err)
+    }
 }
 ```
 

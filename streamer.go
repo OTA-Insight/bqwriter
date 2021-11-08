@@ -30,9 +30,14 @@ import (
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
 	"github.com/OTA-Insight/bqwriter/log"
+
+	bq "cloud.google.com/go/bigquery"
 )
 
-var mutuallyExclusiveConfigs = errors.New("you can not define both a storage Client and a batch client at once")
+var (
+	mutuallyExclusiveConfigsErr     = errors.New("you cannot define both a storage Client and a batch client at once")
+	autoDetectSchemaNotSupportedErr = errors.New("BQ batch client: autoDetect is only supported for JSON and CSV format")
+)
 
 // Streamer is a simple BQ stream-writer, allowing you
 // write data to a BQ table concurrently.
@@ -60,7 +65,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 		ctx,
 		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig, batchCfg *BatchClientConfig) (bigquery.Client, error) {
 			if storageCfg != nil && batchCfg != nil {
-				return nil, mutuallyExclusiveConfigs
+				return nil, mutuallyExclusiveConfigsErr
 			}
 
 			if storageCfg != nil {
@@ -96,10 +101,31 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 			}
 
 			if batchCfg != nil {
+				sourceFormat := bq.JSON
+				if batchCfg.SourceFormat != nil {
+					sourceFormat = *batchCfg.SourceFormat
+				}
+
+				// If the format is not JSON or CSV and no schema is provided, error as this is only supported for json and csv.
+				if batchCfg.BigQuerySchema == nil && (sourceFormat != bq.JSON && sourceFormat != bq.CSV) {
+					return nil, autoDetectSchemaNotSupportedErr
+				}
+
+				// If the schema is nil, set the autodetect flag as true
+				autoDetect := true
+				if batchCfg.BigQuerySchema == nil {
+					autoDetect = true
+				}
+
+				writeDisposition := bq.WriteAppend
+				if batchCfg.WriteDisposition != nil {
+					writeDisposition = *batchCfg.WriteDisposition
+				}
+
 				client, err := batch.NewClient(
 					projectID, dataSetID, tableID,
-					!batchCfg.FailForUnknownValues, batchCfg.AutoDetect,
-					batchCfg.SourceFormat, batchCfg.WriteDisposition,
+					!batchCfg.FailForUnknownValues, autoDetect,
+					sourceFormat, writeDisposition,
 					batchCfg.BigQuerySchema, batchCfg.CSVOptions,
 				)
 
