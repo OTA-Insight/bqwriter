@@ -245,6 +245,130 @@ in the correct format as Protobuf encoded binary data.
 `ProtobufDescriptor` is preferred as you might have to pay a performance penalty
 should you want to use the `BigQuerySchema` instead.
 
+### Batch client
+
+The batch client can be used if you want to upload a big dataset of data to bigquery without any additional cost.
+
+Here follows an example on how you can create such a batch API driven BigQuery client.
+
+```go
+import (
+    "bytes"
+    "context"
+    "encoding/json"
+
+    "github.com/OTA-Insight/bqwriter"
+
+    "cloud.google.com/go/bigquery"
+)
+
+func main() {
+    ctx := context.Background()
+	
+    // By using new(bqwriter.BatchClientConfig) we will create a config with bigquery.JSON as default format
+    // And the schema will be autodetected via the data.
+    // Possible options are: 
+    // - BigQuerySchema: Schema to use to upload to bigquery.
+    // - SourceFormat: Format of the data we want to send.
+    // - FailForUnknownValues: will treat records that have unknown values as invalid records.
+    // - WriteDisposition: Defines what the write disposition should be to the bigquery table.
+    batchConfig := new(bqwriter.BatchClientConfig)
+	
+    // create a BQ (stream) writer thread-safe client.
+    bqWriter, err := bqwriter.NewStreamer(
+        ctx,
+        "my-gcloud-project",
+        "my-bq-dataset",
+        "my-bq-table",
+        &bqwriter.StreamerConfig{
+            BatchClient: batchConfig
+        },
+    )
+
+    if err != nil {
+        // TODO: handle error gracefully
+        panic(err)
+    }
+		
+    // do not forget to close, to close all background resources opened
+    // when creating the BQ (stream) writer client
+    defer bqWriter.Close()
+
+    // Create some data, make sure your data implements the io.Reader interface so it can be used!
+    type person struct {
+        ID   int    `json:"id"`
+        Name string `json:"name"`
+    }
+    data := []person{
+        {
+            ID:   1,
+            Name: "John",
+        },
+        {
+            ID:   2,
+            Name: "Jane",
+        },
+    }
+
+    // Convert the data into a reader.
+    var buffer bytes.Buffer
+    for _, r := range data {
+        body, _ := json.Marshal(r)
+        buffer.Write(body)
+        buffer.WriteString("\n") // If the format is JSON, make sure every row is on a newline.
+    }
+
+    // Write the data to bigquery.
+    err := bqWriter.Write(bytes.NewReader(buffer.Bytes()))
+    if err != nil {
+        // TODO: handle error gracefully
+        panic(err)
+    }
+}
+```
+
+You must define the `BatchClientConfig`, as demonstrated in previous example,
+in order to create a Batch client.
+Note that you cannot create a blank `BatchClientConfig` or any kind of default,
+as you are required to configure it with at least a `SourceFormat`.
+
+
+**BatchClientConfig options**
+
+- `BigQuerySchema` BigQuerySchema can be used in order to use a data encoder for the batchClient
+  based on a dynamically defined BigQuery schema in order to be able to encode any struct,
+  JsonMarshaler, Json-encoded byte slice, Stringer (text proto) or string (also text proto)
+  as a valid protobuf message based on the given BigQuery Schema.
+  
+  The `BigQuerySchema` is required for all `SourceFormat` except for `bigquery.CSV` and `bigquery.JSON` as these
+  2 formats will autodetect the schema via the content.
+
+- `SourceFormat` is used to define the format that the data is that we will send.
+  Possible options are:
+  - `bigquery.CSV`
+  - `bigquery.Avro`
+  - `bigquery.JSON`
+  - `bigquery.Parquet`
+  - `bigquery.ORC`
+
+- `FailForUnknownValues` causes records containing such values
+  to be treated as invalid records.
+  
+  Defaults to false, making it ignore any invalid values, silently ignoring these errors,
+  and publishing the rows with the unknown values removed from them.
+
+- `WriteDisposition` can be used to define what the write disposition should be to the bigquery table.
+  Possible options are:
+    - bigquery.WriteAppend
+    - bigquery.WriteTruncate
+    - bigquery.WriteEmpty
+  
+  Defaults to bigquery.WriteAppend, which will append the data to the table.
+
+#### Future improvements
+Currently, the package does not support any additional options that the different `SourceFormat` could have, feel free to
+open a feature request to add support for these.
+
 ## Authorization
 
 The streamer client will use [Google Application Default Credentials](https://developers.google.com/identity/protocols/application-default-credentials) for authorization credentials used in calling the API endpoints.

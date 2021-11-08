@@ -14,7 +14,11 @@
 
 package constant
 
-import "time"
+import (
+	"time"
+
+	"cloud.google.com/go/bigquery"
+)
 
 const (
 	// DefaultWorkerCount is used as the default for the WorkerCount property of
@@ -55,4 +59,13 @@ const (
 	// in order to allow the Streamer's users to write rows even if all workers are currently
 	// too busy to accept new incoming rows. Used in case the property is 0 (e.g. when undefined).
 	DefaultWorkerQueueSize = 100
+
+	// DefaultSourceFormat defines the default SourceFormat that the BatchClient will use to upload its data.
+	// Used in case the SourceFormat is "" (e.g. when undefined)
+	DefaultSourceFormat = bigquery.JSON
+
+	// DefaultWriteDisposition defines the default WriteDisposition that will be used to write the data to the BQ table
+	// that the BatchClient uses.
+	// Used when WriteDisposition is "" (e.g. when undefined)
+	DefaultWriteDisposition = bigquery.WriteAppend
 )
