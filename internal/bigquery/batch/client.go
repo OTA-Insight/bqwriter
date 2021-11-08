@@ -58,6 +58,25 @@ func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues, autoDe
 	if projectID == "" {
 		return nil, fmt.Errorf("bq insertAll client creation: validate projectID: %w: missing", internal.InvalidParamErr)
 	}
+
+	// NOTE: we are using the background Context,
+	// as to ensure that we can always write to the client,
+	// even when the actual parent context is already done.
+	// This is a requirement given the streamer will batch its rows.
+	client, err := bigquery.NewClient(context.Background(), projectID)
+	if err != nil {
+		return nil, fmt.Errorf("create BQ batch Client: %w", err)
+	}
+
+	return newClient(
+		client, dataSetID, tableID,
+		ignoreUnknownValues, autoDetect,
+		sourceFormat, writeDisposition,
+		schema, csvOptions,
+	)
+}
+
+func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknownValues, autoDetect bool, sourceFormat bigquery.DataFormat, writeDisposition *bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
 	if dataSetID == "" {
 		return nil, fmt.Errorf("bq insertAll client creation: validate dataSetID: %w: missing", internal.InvalidParamErr)
 	}
@@ -87,15 +106,6 @@ func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues, autoDe
 	tableWriteDisposition := bigquery.WriteAppend
 	if writeDisposition != nil {
 		tableWriteDisposition = *writeDisposition
-	}
-
-	// NOTE: we are using the background Context,
-	// as to ensure that we can always write to the client,
-	// even when the actual parent context is already done.
-	// This is a requirement given the streamer will batch its rows.
-	client, err := bigquery.NewClient(context.Background(), projectID)
-	if err != nil {
-		return nil, fmt.Errorf("create BQ batch Client: %w", err)
 	}
 
 	return &Client{

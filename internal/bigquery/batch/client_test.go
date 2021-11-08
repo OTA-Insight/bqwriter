@@ -33,11 +33,13 @@ type TestClientConfig struct {
 func newTestClient(t *testing.T, cfg *TestClientConfig) (*Client, error) {
 	t.Helper()
 
+	bqClient := bigquery.Client{}
+
 	if cfg == nil {
 		cfg = new(TestClientConfig)
 	}
-	client, err := NewClient(
-		"test", "test", "test",
+	client, err := newClient(
+		&bqClient, "test", "test",
 		false, cfg.AutoDetect, cfg.SourceFormat, cfg.WriteDisposition,
 		cfg.BigQuerySchema, cfg.CSVOptions)
 	return client, err
