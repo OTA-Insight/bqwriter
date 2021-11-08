@@ -1,5 +1,17 @@
 # Changes
 
+## [v0.5.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.4.0...v0.4.1) (2021-11-12 ETA)
+
+- add batch upload support (https://cloud.google.com/bigquery/docs/batch-loading-data),
+  this is a third client next to the already supported InsertAll (legacy) and storage API clients;
+- add benchmark code and results with production-ready Google Cloud infrastructure, load and data;
+
+Bug Fixes:
+
+- storage API ...
+
+work in progress
+
 ## [v0.4.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.4.0...v0.4.1) (2021-12-06)
 
 - add storage API driven stream examples to README;
