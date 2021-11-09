@@ -9,6 +9,17 @@ It is recommended to use the Storage API as it is faster and comes with a lower 
 require a bit more configuration on your side, including a Proto schema file as well.
 See [the Storage example below](#Storage-Streamer) on how to do this.
 
+A third API is available as well, and is a bit different than the other ones. A streamer using the batch API
+expects the data to be written be an io.Reader of which encoded rows can be read from, in order to be batch
+loaded into BigQuery. As such its purpose is different from the other 2 clients, and is meant more in an
+environment where a lot of data has to be loaded at once into big query, rather than being part of a constant
+high-speed high-throughput environment.
+
+See https://cloud.google.com/bigquery/docs/batch-loading-data for more information about the Batch API,
+and see [the Batch example below](#Batch-Streamer) on how to do create and use the Batch-driven Streamer.
+
+## Install
+
 ```go
 import "github.com/OTA-Insight/bqwriter"
 ```
@@ -42,6 +53,9 @@ The `Streamer` client is safe for concurrent use and can be used from as many go
 No external locking or other concurrency-safe mechanism is required from your side. To keep these examples
 as small as possible however they are written in a linear synchronous fashion, but it is encouraged to use the
 `Streamer` client from multiple go routines, in order to be able to write rows at a sufficiently high throughput.
+
+Note that for the Batch-driven `Streamer` it is not abnormal to force it to run with a single worker routine.
+The batch delay can also be disabled for it as no flushing is required for it anyhow.
 
 Please also note that errors are not handled gracefully in these examples as ot keep them small and narrow in scope.
 
@@ -248,9 +262,9 @@ in the correct format as Protobuf encoded binary data.
 `ProtobufDescriptor` is preferred as you might have to pay a performance penalty
 should you want to use the `BigQuerySchema` instead.
 
-### Batch client
+### Batch Streamer
 
-The batch client can be used if you want to upload a big dataset of data to bigquery without any additional cost.
+The batch streamer can be used if you want to upload a big dataset of data to bigquery without any additional cost.
 
 Here follows an example on how you can create such a batch API driven BigQuery client.
 
@@ -332,19 +346,19 @@ func main() {
 
 You must define the `BatchClientConfig`, as demonstrated in previous example,
 in order to create a Batch client.
+
 Note that you cannot create a blank `BatchClientConfig` or any kind of default,
 as you are required to configure it with at least a `SourceFormat`.
 
+**BatchClientConfig options**:
 
-**BatchClientConfig options**
-
-- `BigQuerySchema` BigQuerySchema can be used in order to use a data encoder for the batchClient
+- `BigQuerySchema` can be used in order to use a data encoder for the batchClient
   based on a dynamically defined BigQuery schema in order to be able to encode any struct,
   JsonMarshaler, Json-encoded byte slice, Stringer (text proto) or string (also text proto)
   as a valid protobuf message based on the given BigQuery Schema.
   
   The `BigQuerySchema` is required for all `SourceFormat` except for `bigquery.CSV` and `bigquery.JSON` as these
-  2 formats will autodetect the schema via the content.
+  2 formats will auto detect the schema via the content.
 
 - `SourceFormat` is used to define the format that the data is that we will send.
   Possible options are:
@@ -362,13 +376,14 @@ as you are required to configure it with at least a `SourceFormat`.
 
 - `WriteDisposition` can be used to define what the write disposition should be to the bigquery table.
   Possible options are:
-    - bigquery.WriteAppend
-    - bigquery.WriteTruncate
-    - bigquery.WriteEmpty
+    - `bigquery.WriteAppend`
+    - `bigquery.WriteTruncate`
+    - `bigquery.WriteEmpty`
   
-  Defaults to bigquery.WriteAppend, which will append the data to the table.
+  Defaults to `bigquery.WriteAppend`, which will append the data to the table.
 
 #### Future improvements
+
 Currently, the package does not support any additional options that the different `SourceFormat` could have, feel free to
 open a feature request to add support for these.
 
@@ -412,6 +427,31 @@ of monitoring tool. Please include your perspective and theoretical interface as
 
 We do not have any need for this feature ourselves and thus will only implement it in case there
 is sufficient and well motivated interest for it.
+
+## Write Error handling
+
+The current version of the bqwriter is written with a fire-and-forget philosophy in mind.
+Actual write errors occur on async worker goroutines and are only logged. Already today,
+you can plugin your own logger implementation in order to get these logs in your alerting systems.
+
+Please file a detailed feature request with a real use case as part of the verbose description
+should you be in need of being able to handle errors.
+
+One possible approach would be to allow a channel or callback to be defined in the `StreamerConfig`
+which would get a specific data structure for any write failure. This could contain the data which failed to write,
+any kind of offset/insertID as well as the actual error which occurred. The details would however to be worked out
+as part of the proposal.
+
+Besides a valid use case to motivate this proposal we would also need to think carefully about how
+we can make the returned errors actionable. Returning it only to allow the user to log/print it is a bit silly,
+as that is anyway already the behavior today. The real value from this proposal would come from the fact that
+the data can be retried to be inserted (if it makes sense within its context, as defined by at the very least the error type),
+and done so in an easy and safe manner, and with actual aid to help prevent duplicates. The Google Cloud API provides for this purpose
+the offsets and insertID's, but the question is how we would integrate this and also to double check that this really does prevent
+duplicates or not.
+
+The [Contributing section](#Contributing) section explains how you can actively
+help to get this supported if desired.
 
 ## Contributing
 
