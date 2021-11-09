@@ -39,7 +39,7 @@ func newTestClient(t *testing.T, cfg *TestClientConfig) (*Client, error) {
 	client, err := newClient(
 		bqClient, "test", "test",
 		false, cfg.SourceFormat, cfg.WriteDisposition,
-		cfg.BigQuerySchema)
+		cfg.BigQuerySchema, test.Logger{})
 	return client, err
 }
 

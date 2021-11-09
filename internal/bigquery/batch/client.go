@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/OTA-Insight/bqwriter/log"
+
 	"cloud.google.com/go/bigquery"
 )
 
@@ -42,11 +44,11 @@ type Client struct {
 	ignoreUnknownValues bool
 	writeDisposition    bigquery.TableWriteDisposition
 
-	errors []*bigquery.Error
+	logger log.Logger
 }
 
 // NewClient creates a new Client.
-func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema) (*Client, error) {
+func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, logger log.Logger) (*Client, error) {
 	// NOTE: we are using the background Context,
 	// as to ensure that we can always write to the client,
 	// even when the actual parent context is already done.
@@ -60,11 +62,10 @@ func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues bool, s
 		client, dataSetID, tableID,
 		ignoreUnknownValues,
 		sourceFormat, writeDisposition,
-		schema,
+		schema, logger,
 	)
 }
-
-func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema) (*Client, error) {
+func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, logger log.Logger) (*Client, error) {
 	return &Client{
 		client: client,
 
@@ -75,6 +76,8 @@ func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknown
 		sourceFormat:        sourceFormat,
 		ignoreUnknownValues: ignoreUnknownValues,
 		writeDisposition:    writeDisposition,
+
+		logger: logger,
 	}, nil
 }
 
@@ -109,7 +112,9 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 	}
 
 	if err := status.Err(); err != nil {
-		bqc.errors = status.Errors
+		for _, statErr := range status.Errors {
+			bqc.logger.Errorf("BQ batch client: status error: %w", statErr)
+		}
 		return false, fmt.Errorf("BQ batch client: job returned an error status %w", err)
 	}
 
@@ -132,8 +137,4 @@ func (bqc *Client) Close() error {
 		return fmt.Errorf("BQ batch client: failed while closing %w", err)
 	}
 	return nil
-}
-
-func (bqc Client) Errors() []*bigquery.Error {
-	return bqc.errors
 }

@@ -96,7 +96,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 					projectID, dataSetID, tableID,
 					!batchCfg.FailForUnknownValues,
 					batchCfg.SourceFormat, batchCfg.WriteDisposition,
-					batchCfg.BigQuerySchema,
+					batchCfg.BigQuerySchema, logger,
 				)
 
 				if err != nil {
