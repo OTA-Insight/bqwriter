@@ -569,9 +569,6 @@ func TestSanitizeBatchConfigDefaults(t *testing.T) {
 		InputFailForUnknownValues    bool
 		ExpectedFailForUnknownValues bool
 
-		InputCSVOptions    *bigquery.CSVOptions
-		ExpectedCSVOptions *bigquery.CSVOptions
-
 		InputWriteDisposition    bigquery.TableWriteDisposition
 		ExpectedWriteDisposition bigquery.TableWriteDisposition
 	}{
@@ -622,7 +619,6 @@ func TestSanitizeBatchConfigDefaults(t *testing.T) {
 			BigQuerySchema:       testCase.InputBigQuerySchema,
 			SourceFormat:         testCase.InputSourceFormat,
 			FailForUnknownValues: testCase.InputFailForUnknownValues,
-			CSVOptions:           testCase.InputCSVOptions,
 			WriteDisposition:     testCase.InputWriteDisposition,
 		}
 		// ... expected output
@@ -631,7 +627,6 @@ func TestSanitizeBatchConfigDefaults(t *testing.T) {
 			BigQuerySchema:       testCase.ExpectedBigQuerySchema,
 			SourceFormat:         testCase.ExpectedSourceFormat,
 			FailForUnknownValues: testCase.ExpectedFailForUnknownValues,
-			CSVOptions:           testCase.ExpectedCSVOptions,
 			WriteDisposition:     testCase.ExpectedWriteDisposition,
 		}
 		// and finally piggy-back on our other logic

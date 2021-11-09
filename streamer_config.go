@@ -188,9 +188,6 @@ type (
 		// and publishing the rows with the unknown values removed from them.
 		FailForUnknownValues bool
 
-		// CSVOptions can be used to define what CSV options should be set for a CSV upload
-		CSVOptions *bigquery.CSVOptions
-
 		// WriteDisposition can be used to define what the write disposition should be to the bigquery table.
 		// Possible options are:
 		//   - bigquery.WriteAppend

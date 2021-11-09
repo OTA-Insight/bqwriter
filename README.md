@@ -357,9 +357,6 @@ as you are required to configure it with at least a `SourceFormat`.
   Defaults to false, making it ignore any invalid values, silently ignoring these errors,
   and publishing the rows with the unknown values removed from them.
 
-- `CSVOptions` can be used to define what CSV options should be set for a CSV upload
-  This option is only allowed if the SourceFormat is bigquery.CSV.
-
 - `WriteDisposition` can be used to define what the write disposition should be to the bigquery table.
   Possible options are:
     - bigquery.WriteAppend
@@ -367,6 +364,10 @@ as you are required to configure it with at least a `SourceFormat`.
     - bigquery.WriteEmpty
   
   Defaults to bigquery.WriteAppend, which will append the data to the table.
+
+#### Future improvements
+Currently, the package does not support any additional options that the different `SourceFormat` could have, feel free to
+open a feature request to add support for these.
 
 ## Authorization
 

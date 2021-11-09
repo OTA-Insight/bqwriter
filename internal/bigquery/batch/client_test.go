@@ -25,7 +25,6 @@ import (
 type TestClientConfig struct {
 	BigQuerySchema   *bigquery.Schema
 	SourceFormat     bigquery.DataFormat
-	CSVOptions       *bigquery.CSVOptions
 	WriteDisposition bigquery.TableWriteDisposition
 }
 
@@ -40,7 +39,7 @@ func newTestClient(t *testing.T, cfg *TestClientConfig) (*Client, error) {
 	client, err := newClient(
 		bqClient, "test", "test",
 		false, cfg.SourceFormat, cfg.WriteDisposition,
-		cfg.BigQuerySchema, cfg.CSVOptions)
+		cfg.BigQuerySchema)
 	return client, err
 }
 
@@ -49,7 +48,6 @@ func TestBatchClientValidConfig(t *testing.T) {
 	test.AssertNoError(t, err)
 
 	test.AssertEqual(t, client.sourceFormat, bigquery.JSON)
-	test.AssertNil(t, client.csvOptions)
 	test.AssertNil(t, client.schema)
 	test.AssertEqual(t, client.writeDisposition, bigquery.WriteAppend)
 }

@@ -40,14 +40,13 @@ type Client struct {
 	schema              *bigquery.Schema
 	sourceFormat        bigquery.DataFormat
 	ignoreUnknownValues bool
-	csvOptions          *bigquery.CSVOptions
 	writeDisposition    bigquery.TableWriteDisposition
 
 	errors []*bigquery.Error
 }
 
 // NewClient creates a new Client.
-func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
+func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema) (*Client, error) {
 	// NOTE: we are using the background Context,
 	// as to ensure that we can always write to the client,
 	// even when the actual parent context is already done.
@@ -61,11 +60,11 @@ func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues bool, s
 		client, dataSetID, tableID,
 		ignoreUnknownValues,
 		sourceFormat, writeDisposition,
-		schema, csvOptions,
+		schema,
 	)
 }
 
-func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
+func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema) (*Client, error) {
 	return &Client{
 		client: client,
 
@@ -75,7 +74,6 @@ func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknown
 		schema:              schema,
 		sourceFormat:        sourceFormat,
 		ignoreUnknownValues: ignoreUnknownValues,
-		csvOptions:          csvOptions,
 		writeDisposition:    writeDisposition,
 	}, nil
 }
@@ -91,9 +89,6 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 	source := bigquery.NewReaderSource(reader)
 	source.SourceFormat = bqc.sourceFormat
 	source.IgnoreUnknownValues = bqc.ignoreUnknownValues
-	if bqc.csvOptions != nil {
-		source.CSVOptions = *bqc.csvOptions
-	}
 
 	if bqc.schema == nil {
 		source.AutoDetect = true
