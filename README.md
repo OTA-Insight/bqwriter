@@ -18,6 +18,12 @@ high-speed high-throughput environment.
 See https://cloud.google.com/bigquery/docs/batch-loading-data for more information about the Batch API,
 and see [the Batch example below](#Batch-Streamer) on how to do create and use the Batch-driven Streamer.
 
+Note that (gcloud) [Authorization](#Authorization) is implemented in the most basic manner.
+[Write Error Handling](#write-error-handling) is currently not possible either, making the Streamer
+a fire-and-forget BQ writer. Please read the sections on these to topics for more information
+and please consult he [Contributing section](#Contributing) section explains how you can actively
+help to get this supported if desired.
+
 ## Install
 
 ```go
