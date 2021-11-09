@@ -15,7 +15,6 @@
 package bqwriter
 
 import (
-	"errors"
 	"time"
 
 	"cloud.google.com/go/bigquery"
@@ -68,6 +67,11 @@ type (
 		// You can do so using `new(StorageClientConfig)` in order to create a StorageClient
 		// with all possible configurations configured using their defaults as defined by this Go package.
 		StorageClient *StorageClientConfig
+
+		// BatchClient allows you to create a Batch API driven Streamer client.
+		// You can do so using `new(BatchClientConfig)` in order to create a BatchClient
+		// with all possible configurations configured using their defaults as defined by this Go package.
+		BatchClient *BatchClientConfig
 	}
 
 	// InsertAllClientConfig is used to configure an InsertAll client API driven Streamer Client.
@@ -127,6 +131,43 @@ type (
 		// It is however recommended to use the The ProtobufDescriptor
 		// as a BigQuerySchema based encoder has a possible performance penalty.
 		ProtobufDescriptor *descriptorpb.DescriptorProto
+	}
+
+	BatchClientConfig struct {
+		// BigQuerySchema can be used in order to use a data encoder for the batchClient
+		// based on a dynamically defined BigQuery schema in order to be able to encode any struct,
+		// JsonMarshaler, Json-encoded byte slice, Stringer (text proto) or string (also text proto)
+		// as a valid protobuf message based on the given BigQuery Schema.
+		//
+		// This config is only required if autoDetect is false.
+		BigQuerySchema *bigquery.Schema
+
+		// SourceFormat is used to define the format that the data is that we will send.
+		// Possible options are:
+		//   - bigquery.CSV
+		//   - bigquery.Avro
+		//   - bigquery.JSON
+		//   - bigquery.Parquet
+		//   - bigquery.ORC
+		//
+		// The default SourceFormat is bigquery.JSON
+		SourceFormat bigquery.DataFormat
+
+		// FailForUnknownValues causes records containing such values
+		// to be treated as invalid records.
+		//
+		// Defaults to false, making it ignore any invalid values, silently ignoring these errors,
+		// and publishing the rows with the unknown values removed from them.
+		FailForUnknownValues bool
+
+		// WriteDisposition can be used to define what the write disposition should be to the bigquery table.
+		// Possible options are:
+		//   - bigquery.WriteAppend
+		//   - bigquery.WriteTruncate
+		//   - bigquery.WriteEmpty
+		//
+		// Defaults to bigquery.WriteAppend, which will append the data to the table.
+		WriteDisposition bigquery.TableWriteDisposition
 	}
 )
 
@@ -198,6 +239,13 @@ func sanitizeStreamerConfig(cfg *StreamerConfig) (sanCfg *StreamerConfig, err er
 		return nil, err
 	}
 
+	// only sanitize the Batch (client) Config if it is actually defined
+	// otherwise nil will be returned
+	sanCfg.BatchClient, err = sanitizeBatchClientConfig(cfg.BatchClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// return the sanitized named output config
 	return sanCfg, nil
 }
@@ -256,8 +304,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 		return
 	}
 	if cfg.ProtobufDescriptor == nil && cfg.BigQuerySchema == nil {
-		// nolint: goerr113
-		return nil, errors.New("StorageClientConfig invalid: either a Protobuf descriptor or BigQuery schema is required")
+		return nil, internal.ProtobufOrSChemaRequiredErr
 	}
 
 	// we want to create a new config, as to not mutate an input param (the cfg),
@@ -272,4 +319,42 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 
 	// return the sanitized named output non-nil config
 	return sanCfg, nil
+}
+
+// sanitizeBatchClientConfig is used to fill in some or all properties
+// with sane default values for the BatchClientConfig.
+// Defined as a function to keep its logic contained and well tested.
+func sanitizeBatchClientConfig(cfg *BatchClientConfig) (batchCfg *BatchClientConfig, err error) {
+	if cfg == nil {
+		return
+	}
+
+	// we want to create a new config, as to not mutate an input param (the cfg),
+	// this comes at the cost of allocating extra memory, but as this is only expected
+	// to be used at setup time it should be ok, the memory gods will forgive us I'm sure
+	batchCfg = new(BatchClientConfig)
+
+	// simply assign the schema and boolean related properties.
+	// no need for any validation there.
+	batchCfg.BigQuerySchema = cfg.BigQuerySchema
+	batchCfg.FailForUnknownValues = cfg.FailForUnknownValues
+
+	if cfg.SourceFormat != "" {
+		batchCfg.SourceFormat = cfg.SourceFormat
+	} else {
+		batchCfg.SourceFormat = constant.DefaultSourceFormat
+	}
+
+	if cfg.WriteDisposition != "" {
+		batchCfg.WriteDisposition = cfg.WriteDisposition
+	} else {
+		batchCfg.WriteDisposition = constant.DefaultWriteDisposition
+	}
+
+	// If the format is not JSON or CSV and no schema is provided, error as this is only supported for json and csv.
+	if batchCfg.BigQuerySchema == nil && batchCfg.SourceFormat != bigquery.JSON && batchCfg.SourceFormat != bigquery.CSV {
+		return nil, internal.AutoDetectSchemaNotSupportedErr
+	}
+
+	return batchCfg, nil
 }

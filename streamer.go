@@ -25,6 +25,7 @@ import (
 
 	"github.com/OTA-Insight/bqwriter/internal"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery/batch"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/insertall"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
@@ -55,7 +56,11 @@ type streamerJob struct {
 func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
 	return newStreamerWithClientBuilder(
 		ctx,
-		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bigquery.Client, error) {
+		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig, batchCfg *BatchClientConfig) (bigquery.Client, error) {
+			if storageCfg != nil && batchCfg != nil {
+				return nil, internal.MutuallyExclusiveConfigsErr
+			}
+
 			if storageCfg != nil {
 				if storageCfg.ProtobufDescriptor != nil {
 					client, err := storage.NewClient(
@@ -82,6 +87,18 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: %w", err)
 				}
 				return client, nil
+			} else if batchCfg != nil {
+				client, err := batch.NewClient(
+					projectID, dataSetID, tableID,
+					!batchCfg.FailForUnknownValues,
+					batchCfg.SourceFormat, batchCfg.WriteDisposition,
+					batchCfg.BigQuerySchema, logger,
+				)
+
+				if err != nil {
+					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema Batch client: %w", err)
+				}
+				return client, nil
 			}
 
 			client, err := insertall.NewClient(
@@ -101,7 +118,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 	)
 }
 
-type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig) (bigquery.Client, error)
+type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig, batchCfg *BatchClientConfig) (bigquery.Client, error)
 
 func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuilderFunc, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
 	if projectID == "" {
@@ -138,7 +155,7 @@ func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuild
 			workerCtx,
 			projectID, dataSetID, tableID,
 			cfg.Logger,
-			cfg.InsertAllClient, cfg.StorageClient,
+			cfg.InsertAllClient, cfg.StorageClient, cfg.BatchClient,
 		)
 		if err != nil {
 			workerCtxCancelFn()
