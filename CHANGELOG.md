@@ -1,6 +1,6 @@
 # Changes
 
-## [v0.5.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.4.0...v0.4.1) (2021-11-12 ETA)
+## [v0.5.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.0...v0.4.1) (2021-11-09)
 
 - add batch upload support (https://cloud.google.com/bigquery/docs/batch-loading-data),
   this is a third client next to the already supported InsertAll (legacy) and storage API clients,
@@ -22,8 +22,6 @@ Bug Fixes:
   - fixes related to EOF errors are fixed by switching over to the latest version of the BQ Storage managedwriter;
 - logger:
   - std logger (STDERR) was logging without the use of newlines to separate log statements;
-
-work in progress
 
 ## [v0.4.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.4.0...v0.4.1) (2021-12-06)
 
