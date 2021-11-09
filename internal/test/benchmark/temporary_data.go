@@ -16,28 +16,28 @@ package benchmark
 
 import (
 	"time"
-)
 
-// TODO: support parameters & timestamp once
-// we know how  to support nested types
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+)
 
 // NewProtoTmpData create a Protobuf-based temporary data model,
 // implented using the dataGenerator syntax.
-func NewProtoTmpData(insertID string, name string, uuid int64, timestamp time.Time, truth bool, _parameters map[string]string) interface{} {
-	// parameterSlice := make([]*TemporaryDataParameterProto3, 0, len(parameters))
-	// for name, value := range parameters {
-	// 	parameterSlice = append(parameterSlice, &TemporaryDataParameterProto3{
-	// 		Name:  name,
-	// 		Value: []byte(value),
-	// 	})
-	// }
-	return &TemporaryDataProto3{
-		Name: name,
-		Uuid: uuid,
-		// Timestamp: &timestamppb.Timestamp{
-		// 	Seconds: timestamp.Unix(),
-		// },
-		Truth: truth,
-		// Parameters: parameterSlice,
+func NewProtoTmpData(insertID string, name string, uuid int64, timestamp time.Time, truth bool, parameters map[string]string) interface{} {
+	parameterSlice := make([]*TemporaryDataParameterProto2, 0, len(parameters))
+	for name, value := range parameters {
+		name := name
+		parameterSlice = append(parameterSlice, &TemporaryDataParameterProto2{
+			Name:  &name,
+			Value: []byte(value),
+		})
+	}
+	return &TemporaryDataProto2{
+		Name: &name,
+		Uuid: &uuid,
+		Timestamp: &timestamppb.Timestamp{
+			Seconds: timestamp.Unix(),
+		},
+		Truth:      &truth,
+		Parameters: parameterSlice,
 	}
 }

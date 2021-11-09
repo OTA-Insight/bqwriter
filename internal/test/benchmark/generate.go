@@ -14,4 +14,4 @@
 
 package benchmark
 
-//go:generate protoc --go_out=. --go_opt=paths=source_relative temporary_data_proto3.proto
+//go:generate protoc --go_out=. --go_opt=paths=source_relative temporary_data_proto2.proto

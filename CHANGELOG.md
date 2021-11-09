@@ -1,5 +1,12 @@
 # Changes
 
+## [v0.5.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.1...v0.5.0) (2021-11-10)
+
+- update storage API documentation & end-to-end tests:
+  - storage writer API expects proto2 semantics, proto3 shouldn't be used (yet);
+  - the [normalizeDescriptor](https://pkg.go.dev/cloud.google.com/go/bigquery/storage/managedwriter/adapt#NormalizeDescriptor)
+    should be used to get a descriptor with nested types in order to have it work nicely with nested types;
+
 ## [v0.5.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.0...v0.4.1) (2021-11-09)
 
 - add batch upload support (https://cloud.google.com/bigquery/docs/batch-loading-data),

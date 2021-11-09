@@ -211,9 +211,13 @@ ctx := context.Background()
 
 // create proto descriptor to use for storage client
 protoDescriptor := protodesc.ToDescriptorProto((&protodata.MyCustomProtoMessage{}).ProtoReflect().Descriptor())
-// NOTE: in case you also have nested types (e.g. use the known Timestamp Google type) you'll have to figure how to do this,
-// as currently the Storage API will give an error on this upon writing.
-// This problem is tracked as https://github.com/googleapis/google-cloud-go/issues/5097
+// NOTE:
+//  - storage writer API expects proto2 semantics, proto3 shouldn't be used (yet);
+//  - the [normalizeDescriptor](https://pkg.go.dev/cloud.google.com/go/bigquery/storage/managedwriter/adapt#NormalizeDescriptor)
+//    should be used to get a descriptor with nested types in order to have it work nicely with nested types;
+//    - this means the line above would change to:
+//      `protoDescriptor := adapt.NormalizeDescriptor((&protodata.MyCustomProtoMessage{}).ProtoReflect().Descriptor())`,
+//      which does require the `"cloud.google.com/go/bigquery/storage/managedwriter/adapt"` package to be imported;
 
 // create a BQ (stream) writer thread-safe client,
 bqWriter, err := bqwriter.NewStreamer(
