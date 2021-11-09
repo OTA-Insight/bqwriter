@@ -558,7 +558,7 @@ func testSanitizeStreamerConfigStorageDefaultsForEncoder(t *testing.T, schema *b
 }
 
 func TestSanitizeBatchConfigDefaults(t *testing.T) {
-	schema := bigquery.Schema{}
+	schema := new(bigquery.Schema)
 	testCases := []struct {
 		InputBigQuerySchema    *bigquery.Schema
 		ExpectedBigQuerySchema *bigquery.Schema
@@ -583,21 +583,21 @@ func TestSanitizeBatchConfigDefaults(t *testing.T) {
 			ExpectedAutoDetect:       true,
 		},
 		{
-			InputBigQuerySchema:      &schema,
-			ExpectedBigQuerySchema:   &schema,
+			InputBigQuerySchema:      schema,
+			ExpectedBigQuerySchema:   schema,
 			ExpectedSourceFormat:     expectedDefaultBatchClient.SourceFormat,
 			ExpectedWriteDisposition: expectedDefaultBatchClient.WriteDisposition,
 		},
 		{
-			InputBigQuerySchema:      &schema,
-			ExpectedBigQuerySchema:   &schema,
+			InputBigQuerySchema:      schema,
+			ExpectedBigQuerySchema:   schema,
 			InputSourceFormat:        bigquery.CSV,
 			ExpectedSourceFormat:     bigquery.CSV,
 			ExpectedWriteDisposition: expectedDefaultBatchClient.WriteDisposition,
 		},
 		{
-			InputBigQuerySchema:      &schema,
-			ExpectedBigQuerySchema:   &schema,
+			InputBigQuerySchema:      schema,
+			ExpectedBigQuerySchema:   schema,
 			InputSourceFormat:        bigquery.CSV,
 			ExpectedSourceFormat:     bigquery.CSV,
 			InputWriteDisposition:    bigquery.WriteTruncate,
