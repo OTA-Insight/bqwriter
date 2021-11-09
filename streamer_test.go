@@ -238,7 +238,7 @@ func TestStreamerFlushCount(t *testing.T) {
 
 func TestNewStreamerMutuallyExclusiveConfigErr(t *testing.T) {
 	storageClient := new(StorageClientConfig)
-	storageClient.BigQuerySchema = &bq.Schema{}
+	storageClient.BigQuerySchema = new(bq.Schema)
 	batchClient := new(BatchClientConfig)
 	_, err := NewStreamer(
 		context.Background(),
