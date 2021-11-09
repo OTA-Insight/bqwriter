@@ -16,14 +16,16 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"sync"
-	"time"
 
 	"github.com/OTA-Insight/bqwriter/internal"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
-	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/managedwriter"
 	"github.com/OTA-Insight/bqwriter/log"
+
+	"cloud.google.com/go/bigquery/storage/managedwriter"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -54,7 +56,7 @@ type Client struct {
 
 // NewClient creates a new BQ Storage Client.
 // See the documentation of Client for more information how to use it.
-func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, dp *descriptorpb.DescriptorProto, maxRetries int, initialRetryDelay time.Duration, maxRetryDeadlineOffset time.Duration, retryDelayMultiplier float64, logger log.Logger) (*Client, error) {
+func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, dp *descriptorpb.DescriptorProto, logger log.Logger) (*Client, error) {
 	if projectID == "" {
 		return nil, fmt.Errorf("bq storage client creation: validate projectID: %w: missing", internal.InvalidParamErr)
 	}
@@ -79,10 +81,7 @@ func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, d
 	// This is a requirement given the streamer will batch its rows.
 	ctx := context.Background()
 
-	writer, err := managedwriter.NewClient(
-		ctx, projectID,
-		maxRetries, initialRetryDelay, maxRetryDeadlineOffset, retryDelayMultiplier,
-	)
+	writer, err := managedwriter.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("BQ Storage Client creation: create managed writer: %w", err)
 	}
@@ -139,7 +138,7 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 	// diagnostics with them. Once we would support CommittedStream than
 	// we do want to use the offset for tracking purposes.
 	result, err := bqc.stream.AppendRows(bqc.ctx, binaryData, managedwriter.NoStreamOffset)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return false, fmt.Errorf("BQ Storage Client: Stream: AppendRows: %w", err)
 	}
 	bqc.appendResultCh <- result
@@ -201,7 +200,7 @@ func (bqc *Client) Flush() error {
 
 // Close implements b,fxigquery.Client::Close
 func (bqc *Client) Close() error {
-	if err := bqc.stream.Close(); err != nil {
+	if err := bqc.stream.Close(); err != nil && !errors.Is(err, io.EOF) {
 		bqc.logger.Errorf("close BQ storage client: close stream: %w", err)
 	}
 	if err := bqc.client.Close(); err != nil {

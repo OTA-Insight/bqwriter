@@ -31,10 +31,10 @@ func (stdl Logger) Debugf(template string, args ...interface{}) {} // debug mess
 
 // Error implements Logger::Error
 func (stdl Logger) Error(args ...interface{}) {
-	fmt.Fprint(os.Stderr, args...)
+	fmt.Fprintln(os.Stderr, args...)
 }
 
 // Errorf implements Logger::Errorf
 func (stdl Logger) Errorf(template string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, template, args...)
+	fmt.Fprintf(os.Stderr, template+"\n", args...)
 }

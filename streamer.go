@@ -66,8 +66,6 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 					client, err := storage.NewClient(
 						projectID, dataSetID, tableID,
 						encoding.NewProtobufEncoder(), storageCfg.ProtobufDescriptor,
-						storageCfg.MaxRetries, storageCfg.InitialRetryDelay,
-						storageCfg.MaxRetryDeadlineOffset, storageCfg.RetryDelayMultiplier,
 						logger,
 					)
 					if err != nil {
@@ -83,8 +81,6 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 				client, err := storage.NewClient(
 					projectID, dataSetID, tableID,
 					encoder, nil,
-					storageCfg.MaxRetries, storageCfg.InitialRetryDelay,
-					storageCfg.MaxRetryDeadlineOffset, storageCfg.RetryDelayMultiplier,
 					logger,
 				)
 				if err != nil {

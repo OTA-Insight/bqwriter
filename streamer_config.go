@@ -131,34 +131,6 @@ type (
 		// It is however recommended to use the The ProtobufDescriptor
 		// as a BigQuerySchema based encoder has a possible performance penalty.
 		ProtobufDescriptor *descriptorpb.DescriptorProto
-
-		// MaxRetries is the max amount of times that the retry logic will retry a retryable
-		// BQ write error, prior to giving up. Note that non-retryable errors will immediately stop
-		// and that there is also an upper limit of MaxTotalElpasedRetryTime to execute in worst case these max retries.
-		//
-		// Defaults to constant.DefaultMaxRetries if MaxRetries == 0,
-		// or use MaxRetries < 0 if you want to explicitly disable Retrying.
-		MaxRetries int
-
-		// InitialRetryDelay is the initial time the back off algorithm will wait and which will
-		// be used as the base value to be multiplied for any possible sequential retries.
-		//
-		// Defaults to constant.DefaultInitialRetryDelay if InitialRetryDelay == 0.
-		InitialRetryDelay time.Duration
-
-		// MaxRetryDeadlineOffset is the max amount of time the back off algorithm is allowed to take
-		// for its initial as well as all retry attempts. No retry should be attempted when already over this limit.
-		// This Offset is to be seen as a maximum, which can be stepped over but not by too much.
-		//
-		// Defaults to constant.DefaultMaxRetryDeadlineOffset if MaxRetryDeadlineOffset == 0.
-		MaxRetryDeadlineOffset time.Duration
-
-		// RetryDelayMultiplier is the retry delay multipler used by the retry
-		// back off algorithm in order to increase the delay in between each sequential write-retry of the
-		// same back off sequence.
-		//
-		// Defaults to constant.DefaultRetryDelayMultiplier if RetryDelayMultiplier < 1, as 2 is also the lowest possible multiplier accepted.
-		RetryDelayMultiplier float64
 	}
 
 	BatchClientConfig struct {
@@ -344,47 +316,6 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 	// no need for any validation there
 	sanCfg.BigQuerySchema = cfg.BigQuerySchema
 	sanCfg.ProtobufDescriptor = cfg.ProtobufDescriptor
-
-	// MaxRetries can be:
-	// - negative to disable the the entire Retry back-off algorithm,
-	//   and make sure the client doesn't retry retry-able errors.
-	// - a zero value will make it use the by this Go package defined default for Max Retries
-	// - any other value is respected as-is, so also no upper limit.
-	if cfg.MaxRetries < 0 {
-		sanCfg.MaxRetries = 0
-	} else if cfg.MaxRetries == 0 {
-		sanCfg.MaxRetries = constant.DefaultMaxRetries
-	} else {
-		sanCfg.MaxRetries = cfg.MaxRetries
-	}
-
-	// InitialRetryDelay is the first delay used for the retry-back off algorithm,
-	// and cannot be disabled. It is either the by this Go package defined default,
-	// or else its value is respected as-is, with once again no upper limit.
-	if cfg.InitialRetryDelay == 0 {
-		sanCfg.InitialRetryDelay = constant.DefaultInitialRetryDelay
-	} else {
-		sanCfg.InitialRetryDelay = cfg.InitialRetryDelay
-	}
-
-	// MaxRetryDeadlineOffset is the total time the write action is allowed to take
-	// and cannot be disabled. It is either the by this Go package defined default,
-	// or else its value is respected as-is, with once again no upper limit.
-	if cfg.MaxRetryDeadlineOffset == 0 {
-		sanCfg.MaxRetryDeadlineOffset = constant.DefaultMaxRetryDeadlineOffset
-	} else {
-		sanCfg.MaxRetryDeadlineOffset = cfg.MaxRetryDeadlineOffset
-	}
-
-	// RetryDelayMultiplier is the multiplier used to exponentially increase the max delay
-	// used in between retry attempts. Note that the actual retry duration is each time a random
-	// value in the partially exlusive `]0, currentRetryDelay]` range. While this jitter might
-	// be counter intuitive, it turns out from empirical evidence in the wild that this works surprisingly well.
-	if cfg.RetryDelayMultiplier <= 1 {
-		sanCfg.RetryDelayMultiplier = constant.DefaultRetryDelayMultiplier
-	} else {
-		sanCfg.RetryDelayMultiplier = cfg.RetryDelayMultiplier
-	}
 
 	// return the sanitized named output non-nil config
 	return sanCfg, nil

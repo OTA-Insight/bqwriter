@@ -191,6 +191,9 @@ ctx := context.Background()
 
 // create proto descriptor to use for storage client
 protoDescriptor := protodesc.ToDescriptorProto((&protodata.MyCustomProtoMessage{}).ProtoReflect().Descriptor())
+// NOTE: in case you also have nested types (e.g. use the known Timestamp Google type) you'll have to figure how to do this,
+// as currently the Storage API will give an error on this upon writing.
+// This problem is tracked as https://github.com/googleapis/google-cloud-go/issues/5097
 
 // create a BQ (stream) writer thread-safe client,
 bqWriter, err := bqwriter.NewStreamer(
