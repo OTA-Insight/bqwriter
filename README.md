@@ -319,7 +319,7 @@ func main() {
     }
 
     // Write the data to bigquery.
-    _, err := bqWriter.Put(bytes.NewReader(buffer.Bytes()))
+    err := bqWriter.Write(bytes.NewReader(buffer.Bytes()))
     if err != nil {
         // TODO: handle error gracefully
         panic(err)
