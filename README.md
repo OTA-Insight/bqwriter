@@ -417,16 +417,22 @@ to STDERR. It is used for debug statements as well as unhandled errors. Debug st
 > You can find the interface you would need to implement to support your own Logger at
 > <https://godoc.org/github.com/OTA-Insight/bqwriter/log#Logger>.
 
-Any other instrumentation used for monitoring such as statistics or tags are currently not supported.
-The original experimental storage client of Google supported <https://github.com/census-instrumentation/opencensus-go> out of the box and this support couldn't even be opted out of. Please create a fully detailed and well motivated
-proposal should you find yourself in need of the ability for the library to collect stats.
+The internal client of the Storage-API driven Streamer also provides the tracking of stats regarding its GRPC functionality.
+This is implemented and utilized via the <https://github.com/census-instrumentation/opencensus-go> package.
 
-If it would be supported it would be an opt-in feature which can be enabled by implementing a kind of interface,
-such that this library doesn't have to include any dependency for it and doesn't bind itself to any specific kind
-of monitoring tool. Please include your perspective and theoretical interface as part of your proposal.
+If you use `OpenCensus` for your own project it will work out of the box.
 
-We do not have any need for this feature ourselves and thus will only implement it in case there
-is sufficient and well motivated interest for it.
+In case your project uses another data ingestion system you can none the less get these statistics within your system
+of choice by registering an exporter which exports the stats to the system used by your project. Please see
+https://github.com/census-instrumentation/opencensus-go#views as a starting point on how to register a view yourself.
+OpenCensus comes with a bunch of exporters already, all listed in https://github.com/census-instrumentation/opencensus-go#exporters.
+You can however also implement your own one.
+
+The official google cloud API will most likely switch to OpenCensus's successor OpenTelemetry once the latter becomes stable.
+For now however it is OpenCensus that is used.
+
+Note that this extra form of instrumentation is only applicable to a Streamer using the Storage API. The InsertAll-
+and Batch-driven Streamers do not provide any form of stats tracking.
 
 ## Write Error handling
 
