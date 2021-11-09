@@ -39,6 +39,25 @@ func BenchmarkStorageStreamerDefault(b *testing.B) {
 	BenchmarkStreamer(b, "storage", "default", streamer, NewProtoTmpData)
 }
 
+func BenchmarkStorageStreamerDefaultJson(b *testing.B) {
+	streamer, err := bqwriter.NewStreamer(
+		context.Background(),
+		benchmarkBigQueryProjectID,
+		benchmarkBigQueryDatasetID,
+		benchmarkBigQueryTableID,
+		&bqwriter.StreamerConfig{
+			StorageClient: &bqwriter.StorageClientConfig{
+				BigQuerySchema: &TmpDataBigQuerySchema,
+			},
+		},
+	)
+	if err != nil {
+		b.Fatalf("failed to create BQ schema-based Storage streamer: %v", err)
+	}
+	defer streamer.Close()
+	BenchmarkStreamer(b, "storage", "default (json)", streamer, NewTmpData)
+}
+
 func benchmarkStorageStreamerForParameters(b *testing.B, workerCount int, workerQueueSize int, maxBatchDelay time.Duration) {
 	// TODO: how can we have these nested types automatically included?
 	protoDescriptor := protodesc.ToDescriptorProto((&TemporaryDataProto3{}).ProtoReflect().Descriptor())
@@ -89,4 +108,49 @@ func BenchmarkStorageStreamerNoBatchMultiWorkerNoQueue(b *testing.B) {
 
 func BenchmarkStorageStreamerNoBatchMultiWorkerQueue(b *testing.B) {
 	benchmarkStorageStreamerForParameters(b, 4, 8, 1)
+}
+
+func benchmarkJsonStorageStreamerForParameters(b *testing.B, workerCount int, workerQueueSize int, maxBatchDelay time.Duration) {
+	streamer, err := bqwriter.NewStreamer(
+		context.Background(),
+		benchmarkBigQueryProjectID,
+		benchmarkBigQueryDatasetID,
+		benchmarkBigQueryTableID,
+		&bqwriter.StreamerConfig{
+			WorkerCount:     workerCount,
+			WorkerQueueSize: workerQueueSize,
+			MaxBatchDelay:   maxBatchDelay,
+			StorageClient: &bqwriter.StorageClientConfig{
+				BigQuerySchema: &TmpDataBigQuerySchema,
+			},
+		},
+	)
+	if err != nil {
+		b.Fatalf("failed to create custom BQ-schema based Storage streamer: %v", err)
+	}
+	defer streamer.Close()
+	BenchmarkStreamer(
+		b, "storage-json",
+		fmt.Sprintf(
+			"workeCount=%d;workerQueue=%d;maxBatchDelay=%v",
+			workerCount, workerQueueSize, maxBatchDelay,
+		),
+		streamer, NewTmpData,
+	)
+}
+
+func BenchmarkJsonStorageStreamerNoBatchSingleWorkerNoQueue(b *testing.B) {
+	benchmarkJsonStorageStreamerForParameters(b, 1, 1, 1)
+}
+
+func BenchmarkJsonStorageStreamerNoBatchSingleWorkerWithQueue(b *testing.B) {
+	benchmarkJsonStorageStreamerForParameters(b, 1, 8, 1)
+}
+
+func BenchmarkJsonStorageStreamerNoBatchMultiWorkerNoQueue(b *testing.B) {
+	benchmarkJsonStorageStreamerForParameters(b, 4, 1, 1)
+}
+
+func BenchmarkJsonStorageStreamerNoBatchMultiWorkerQueue(b *testing.B) {
+	benchmarkJsonStorageStreamerForParameters(b, 4, 8, 1)
 }

@@ -22,6 +22,40 @@ import (
 	"cloud.google.com/go/civil"
 )
 
+var TmpDataBigQuerySchema = bigquery.Schema{
+	&bigquery.FieldSchema{
+		Name: "name",
+		Type: bigquery.StringFieldType,
+	},
+	&bigquery.FieldSchema{
+		Name: "uuid",
+		Type: bigquery.IntegerFieldType,
+	},
+	&bigquery.FieldSchema{
+		Name: "timestamp",
+		Type: bigquery.DateTimeFieldType,
+	},
+	&bigquery.FieldSchema{
+		Name: "truth",
+		Type: bigquery.BooleanFieldType,
+	},
+	&bigquery.FieldSchema{
+		Name:     "parameters",
+		Type:     bigquery.RecordFieldType,
+		Repeated: true,
+		Schema: bigquery.Schema{
+			&bigquery.FieldSchema{
+				Name: "name",
+				Type: bigquery.StringFieldType,
+			},
+			&bigquery.FieldSchema{
+				Name: "value",
+				Type: bigquery.BytesFieldType,
+			},
+		},
+	},
+}
+
 // NewTmpData create a ValueSaver/JsonMarshal-based temporary data model,
 // implented using the DataGenerator syntax.
 func NewTmpData(insertID string, name string, uuid int64, timestamp time.Time, truth bool, parameters map[string]string) interface{} {
@@ -36,7 +70,7 @@ func NewTmpData(insertID string, name string, uuid int64, timestamp time.Time, t
 		InsertID:   insertID,
 		Name:       name,
 		Uuid:       uuid,
-		Timestamp:  timestamp,
+		Timestamp:  civil.DateTimeOf(timestamp),
 		Truth:      truth,
 		Parameters: parameterSlice,
 	}
@@ -50,7 +84,7 @@ type TmpData struct {
 
 	Name       string
 	Uuid       int64
-	Timestamp  time.Time
+	Timestamp  civil.DateTime
 	Truth      bool
 	Parameters []*TmpDataParameter
 }
@@ -67,7 +101,7 @@ func (td *TmpData) Save() (row map[string]bigquery.Value, insertID string, err e
 	for _, param := range td.Parameters {
 		parameters = append(parameters, param.AsBigqueryValue())
 	}
-	timestamp := civil.DateTimeOf(td.Timestamp).String()
+	timestamp := td.Timestamp.String()
 	return map[string]bigquery.Value{
 		"name":       td.Name,
 		"uuid":       td.Uuid,
@@ -84,13 +118,12 @@ func (tp *TmpDataParameter) AsBigqueryValue() bigquery.Value {
 	}
 }
 
-func (td *TmpData) MarshalJson() ([]byte, error) {
-	timestamp := civil.DateTimeOf(td.Timestamp).String()
+func (td *TmpData) MarshalJSON() ([]byte, error) {
 	// nolint: wrapcheck
 	return json.Marshal(map[string]interface{}{
 		"name":       td.Name,
 		"uuid":       td.Uuid,
-		"timestamp":  timestamp[:len(timestamp)-3],
+		"timestamp":  td.Timestamp.In(time.Local).Unix(),
 		"truth":      td.Truth,
 		"parameters": td.Parameters,
 	})
