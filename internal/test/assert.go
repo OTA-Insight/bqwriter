@@ -36,6 +36,8 @@ func errorf(t *testing.T, contextArgs []interface{}, format string, args ...inte
 	t.Errorf("\n"+format, args...)
 }
 
+// AssertError can be used to (test) assert if an error is non-nil,
+// logging a message with context and stacktrace if false
 func AssertError(t *testing.T, err error, contextArgs ...interface{}) bool {
 	if err == nil {
 		errorf(t, contextArgs, "no error returned while one is expected")
@@ -44,6 +46,8 @@ func AssertError(t *testing.T, err error, contextArgs ...interface{}) bool {
 	return false
 }
 
+// AssertIsError can be used to (test) assert if an error is a specific kind of error,
+// logging a message with context and stacktrace if false
 func AssertIsError(t *testing.T, err error, target error, contextArgs ...interface{}) bool {
 	if !errors.Is(err, target) {
 		errorf(t, contextArgs, "expected error %v (%T) to be %v (%T)", err, err, target, target)
@@ -52,6 +56,8 @@ func AssertIsError(t *testing.T, err error, target error, contextArgs ...interfa
 	return true
 }
 
+// AssertNoError can be used to (test) assert if an error is nil,
+// logging a message with context and stacktrace if false
 func AssertNoError(t *testing.T, err error, contextArgs ...interface{}) bool {
 	if err != nil {
 		errorf(t, contextArgs, "no error expected while one is returned: %v", err)
@@ -60,6 +66,8 @@ func AssertNoError(t *testing.T, err error, contextArgs ...interface{}) bool {
 	return true
 }
 
+// AssertNoError can be used to (test) assert if an error is not a specific kind of error,
+// logging a message with context and stacktrace if false
 func AssertIsNotError(t *testing.T, err error, target error, contextArgs ...interface{}) bool {
 	if errors.Is(err, target) {
 		errorf(t, contextArgs, "expected error %v (%T) to not be %v (%T)", err, err, target, target)
@@ -68,6 +76,8 @@ func AssertIsNotError(t *testing.T, err error, target error, contextArgs ...inte
 	return true
 }
 
+// AssertNoErrorFatal can be used to (test) assert if an error is nil,
+// logging a message with context and stacktrace if true, and halting the program afterwards.
 func AssertNoErrorFatal(t *testing.T, err error, contextArgs ...interface{}) bool {
 	if err != nil {
 		t.Fatalf("no error expected while one is returned: %v", err)
@@ -76,6 +86,8 @@ func AssertNoErrorFatal(t *testing.T, err error, contextArgs ...interface{}) boo
 	return true
 }
 
+// AssertEqual can be used to (test) assert that 2 values are deep (reflect) equal,
+// logging a message with context and stacktrace if false
 func AssertEqual(t *testing.T, a, b interface{}, contextArgs ...interface{}) bool {
 	if !reflect.DeepEqual(a, b) {
 		errorf(t, contextArgs, "expected %v == %v", a, b)
@@ -84,6 +96,8 @@ func AssertEqual(t *testing.T, a, b interface{}, contextArgs ...interface{}) boo
 	return true
 }
 
+// AssertEqualAny can be used to (test) assert that a value is deep (reflect) equal with any of the given possibilities,
+// logging a message with context and stacktrace if false
 func AssertEqualAny(t *testing.T, a interface{}, possibilities []interface{}, contextArgs ...interface{}) bool {
 	for _, b := range possibilities {
 		if reflect.DeepEqual(a, b) {
@@ -94,6 +108,8 @@ func AssertEqualAny(t *testing.T, a interface{}, possibilities []interface{}, co
 	return true
 }
 
+// AssertNotEqual can be used to (test) assert that 2 values are not deep (reflect) equal,
+// logging a message with context and stacktrace if false.
 func AssertNotEqual(t *testing.T, a, b interface{}, contextArgs ...interface{}) bool {
 	if reflect.DeepEqual(a, b) {
 		errorf(t, contextArgs, "expected %v != %v", a, b)
@@ -102,6 +118,8 @@ func AssertNotEqual(t *testing.T, a, b interface{}, contextArgs ...interface{}) 
 	return true
 }
 
+// AssertTrue can be used to (test) assert that a boolean is false
+// logging a message with context and stacktrace if true.
 func AssertTrue(t *testing.T, b bool, contextArgs ...interface{}) bool {
 	if !b {
 		errorf(t, contextArgs, "epected %v to be true", b)
@@ -110,6 +128,8 @@ func AssertTrue(t *testing.T, b bool, contextArgs ...interface{}) bool {
 	return true
 }
 
+// AssertFalse can be used to (test) assert that a boolean is true
+// logging a message with context and stacktrace if false.
 func AssertFalse(t *testing.T, b bool, contextArgs ...interface{}) bool {
 	if b {
 		errorf(t, contextArgs, "epected %v to be false", b)
@@ -118,6 +138,8 @@ func AssertFalse(t *testing.T, b bool, contextArgs ...interface{}) bool {
 	return true
 }
 
+// AssertBytesEqual can be used to (test) assert that two byte slices are equal
+// logging a message with context and stacktrace if false.
 func AssertBytesEqual(t *testing.T, a, b []byte, contextArgs ...interface{}) bool {
 	if !bytes.Equal(a, b) {
 		errorf(t, contextArgs, "expected %x == %x", a, b)
@@ -126,6 +148,8 @@ func AssertBytesEqual(t *testing.T, a, b []byte, contextArgs ...interface{}) boo
 	return true
 }
 
+// AssertBytesNotEqual can be used to (test) assert that two byte slices are not equal
+// logging a message with context and stacktrace if false.
 func AssertBytesNotEqual(t *testing.T, a, b []byte, contextArgs ...interface{}) bool {
 	if bytes.Equal(a, b) {
 		errorf(t, contextArgs, "expected %x != %x", a, b)
@@ -134,6 +158,8 @@ func AssertBytesNotEqual(t *testing.T, a, b []byte, contextArgs ...interface{}) 
 	return true
 }
 
+// AssertNotEqualShallow can be used to (test) assert that two values are by value equal or by pointer,
+// logging a message with context and stacktrace if false.
 func AssertNotEqualShallow(t *testing.T, a, b interface{}, contextArgs ...interface{}) bool {
 	if a == b {
 		errorf(t, contextArgs, "expected (shallow) %v != %v", a, b)
@@ -155,6 +181,8 @@ func isNil(a interface{}, contextArgs ...interface{}) bool {
 	return false
 }
 
+// AssertNil can be used to (test) assert that a value is nil,
+// logging a message with context and stacktrace if false.
 func AssertNil(t *testing.T, a interface{}, contextArgs ...interface{}) bool {
 	if !isNil(a) {
 		errorf(t, contextArgs, "expected %v to be nil", a)
@@ -163,6 +191,8 @@ func AssertNil(t *testing.T, a interface{}, contextArgs ...interface{}) bool {
 	return true
 }
 
+// AssertNotNil can be used to (test) assert that a value is not nil,
+// logging a message with context and stacktrace if false.
 func AssertNotNil(t *testing.T, a interface{}, contextArgs ...interface{}) bool {
 	if isNil(a) {
 		errorf(t, contextArgs, "expected %v not to be nil", a)

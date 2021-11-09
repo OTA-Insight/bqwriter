@@ -36,7 +36,7 @@ func BenchmarkStorageStreamerDefault(b *testing.B) {
 		b.Fatalf("failed to create default Storage streamer: %v", err)
 	}
 	defer streamer.Close()
-	BenchmarkStreamer(b, "storage", "default", streamer, NewProtoTmpData)
+	benchmarkStreamer(b, "storage", "default", streamer, NewProtoTmpData)
 }
 
 func BenchmarkStorageStreamerDefaultJson(b *testing.B) {
@@ -47,7 +47,7 @@ func BenchmarkStorageStreamerDefaultJson(b *testing.B) {
 		benchmarkBigQueryTableID,
 		&bqwriter.StreamerConfig{
 			StorageClient: &bqwriter.StorageClientConfig{
-				BigQuerySchema: &TmpDataBigQuerySchema,
+				BigQuerySchema: &tmpDataBigQuerySchema,
 			},
 		},
 	)
@@ -55,7 +55,7 @@ func BenchmarkStorageStreamerDefaultJson(b *testing.B) {
 		b.Fatalf("failed to create BQ schema-based Storage streamer: %v", err)
 	}
 	defer streamer.Close()
-	BenchmarkStreamer(b, "storage", "default (json)", streamer, NewTmpData)
+	benchmarkStreamer(b, "storage", "default (json)", streamer, NewTmpData)
 }
 
 func benchmarkStorageStreamerForParameters(b *testing.B, workerCount int, workerQueueSize int, maxBatchDelay time.Duration) {
@@ -84,7 +84,7 @@ func benchmarkStorageStreamerForParameters(b *testing.B, workerCount int, worker
 		b.Fatalf("failed to create custom Storage streamer: %v", err)
 	}
 	defer streamer.Close()
-	BenchmarkStreamer(
+	benchmarkStreamer(
 		b, "storage",
 		fmt.Sprintf(
 			"workeCount=%d;workerQueue=%d;maxBatchDelay=%v",
@@ -121,7 +121,7 @@ func benchmarkJsonStorageStreamerForParameters(b *testing.B, workerCount int, wo
 			WorkerQueueSize: workerQueueSize,
 			MaxBatchDelay:   maxBatchDelay,
 			StorageClient: &bqwriter.StorageClientConfig{
-				BigQuerySchema: &TmpDataBigQuerySchema,
+				BigQuerySchema: &tmpDataBigQuerySchema,
 			},
 		},
 	)
@@ -129,7 +129,7 @@ func benchmarkJsonStorageStreamerForParameters(b *testing.B, workerCount int, wo
 		b.Fatalf("failed to create custom BQ-schema based Storage streamer: %v", err)
 	}
 	defer streamer.Close()
-	BenchmarkStreamer(
+	benchmarkStreamer(
 		b, "storage-json",
 		fmt.Sprintf(
 			"workeCount=%d;workerQueue=%d;maxBatchDelay=%v",

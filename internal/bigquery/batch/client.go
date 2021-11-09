@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	couldNotConvertReaderErr = errors.New("BQ batch client: could not convert data into io.Reader")
+	errCouldNotConvertReader = errors.New("BQ batch client: could not convert data into io.Reader")
 )
 
 // Client implements the standard/official BQ (cloud) Client,
@@ -85,7 +85,7 @@ func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknown
 func (bqc *Client) Put(data interface{}) (bool, error) {
 	reader, ok := data.(io.Reader)
 	if !ok {
-		return false, couldNotConvertReaderErr
+		return false, errCouldNotConvertReader
 	}
 
 	ctx := context.Background()

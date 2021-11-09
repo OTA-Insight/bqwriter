@@ -33,14 +33,14 @@ const (
 	benchmarkBigQueryTableID   = "tmp"
 )
 
-type DataGenerator = func(insertID string, name string, uuid int64, timestamp time.Time, truth bool, parameters map[string]string) interface{}
+type dataGenerator = func(insertID string, name string, uuid int64, timestamp time.Time, truth bool, parameters map[string]string) interface{}
 
 var (
 	randomNames       = []string{"Pripop", "Flutterprice", "Reudazzle", "Prireeka", "Pricemane"}
 	randomBranchParam = []string{"main", "test", "staging", "dev"}
 )
 
-func BenchmarkStreamer(b *testing.B, streamerName string, testName string, streamer *bqwriter.Streamer, gen DataGenerator) {
+func benchmarkStreamer(b *testing.B, streamerName string, testName string, streamer *bqwriter.Streamer, gen dataGenerator) {
 	insertIDPrefix := fmt.Sprintf("bench-%d-", time.Now().Unix())
 	bench := hrtesting.NewBenchmark(b)
 	defer bench.Report()

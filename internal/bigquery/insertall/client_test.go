@@ -194,7 +194,7 @@ func TestNewStdBQInsertAllThickClientInputErrors(t *testing.T) {
 			test.Logger{},
 		)
 		test.AssertError(t, err)
-		test.AssertIsError(t, err, internal.InvalidParamErr)
+		test.AssertIsError(t, err, internal.ErrInvalidParam)
 		test.AssertNil(t, client)
 	}
 }
@@ -213,7 +213,7 @@ func TestNewBQInsertAllThickClientErrors(t *testing.T) {
 			testCase.Client, 0, 0, testCase.Logger,
 		)
 		test.AssertError(t, err)
-		test.AssertIsError(t, err, internal.InvalidParamErr)
+		test.AssertIsError(t, err, internal.ErrInvalidParam)
 		test.AssertNil(t, client)
 	}
 }

@@ -42,6 +42,9 @@ type Retryer struct {
 // compile-time interface compliance
 var _ gax.Retryer = (*Retryer)(nil)
 
+// NewRetryer creates a new Retryer, the packaged `gax.Retryer` implementation
+// shipped with the bqwriter package. See the documentation of `Retryer` for more information
+// on how it is implemented why it should be used.
 func NewRetryer(ctx context.Context, maxRetries int, initialRetryDelay time.Duration, maxRetryDeadlineOffset time.Duration, retryDelayMultiplier float64, errorFilter func(error) bool) *Retryer {
 	startTime := time.Now()
 	deadlineCtx, cancelDeadlineCtx := context.WithDeadline(ctx, startTime.Add(maxRetryDeadlineOffset))
@@ -119,7 +122,7 @@ func (r *Retryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
 //
 // You can find its implementation at: https://github.com/googleapis/google-cloud-go/blob/45fd2594d99ef70c776df26866f0a3b537e7e69e/bigquery/bigquery.go
 
-// bqGRPCRetryErrorFilter returns a Retry error filter to be used
+// GRPCRetryErrorFilter returns a Retry error filter to be used
 // for retrying GRPC Google API operations (e.g. BQ Storage client)
 func GRPCRetryErrorFilter(err error) bool {
 	st, ok := status.FromError(err)

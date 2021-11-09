@@ -21,7 +21,7 @@ func BenchmarkInsertAllStreamerDefault(b *testing.B) {
 		b.Fatalf("failed to create default InsertAll streamer: %v", err)
 	}
 	defer streamer.Close()
-	BenchmarkStreamer(b, "insertAll", "default", streamer, NewTmpData)
+	benchmarkStreamer(b, "insertAll", "default", streamer, NewTmpData)
 }
 
 func benchmarkInsertAllStreamerForParameters(b *testing.B, workerCount int, workerQueueSize int, maxBatchDelay time.Duration, batchSize int) {
@@ -43,7 +43,7 @@ func benchmarkInsertAllStreamerForParameters(b *testing.B, workerCount int, work
 		b.Fatalf("failed to create custom InsertAll streamer: %v", err)
 	}
 	defer streamer.Close()
-	BenchmarkStreamer(
+	benchmarkStreamer(
 		b, "insertAll",
 		fmt.Sprintf(
 			"workeCount=%d;workerQueue=%d;maxBatchDelay=%v;batchSize=%d",

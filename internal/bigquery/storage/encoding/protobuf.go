@@ -50,7 +50,7 @@ func (pbe *ProtobufEncoder) EncodeRows(data interface{}) ([][]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf(
 			"ProtoBufEncoder: EncodeRows: data is expected to be a proto.Message"+
-				", %T is not supported: %w", data, internal.InvalidParamErr)
+				", %T is not supported: %w", data, internal.ErrInvalidParam)
 	}
 	b, err := proto.Marshal(msg)
 	if err != nil {

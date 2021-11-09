@@ -58,7 +58,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 		ctx,
 		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig, batchCfg *BatchClientConfig) (bigquery.Client, error) {
 			if storageCfg != nil && batchCfg != nil {
-				return nil, internal.MutuallyExclusiveConfigsErr
+				return nil, internal.ErrMutuallyExclusiveConfigs
 			}
 
 			if storageCfg != nil {
@@ -124,13 +124,13 @@ type clientBuilderFunc func(ctx context.Context, projectID, dataSetID, tableID s
 
 func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuilderFunc, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
 	if projectID == "" {
-		return nil, fmt.Errorf("streamer client creation: validate projectID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("streamer client creation: validate projectID: %w: missing", internal.ErrInvalidParam)
 	}
 	if dataSetID == "" {
-		return nil, fmt.Errorf("streamer client creation: validate dataSetID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("streamer client creation: validate dataSetID: %w: missing", internal.ErrInvalidParam)
 	}
 	if tableID == "" {
-		return nil, fmt.Errorf("streamer client creation: validate tableID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("streamer client creation: validate tableID: %w: missing", internal.ErrInvalidParam)
 	}
 
 	// sanitize cfg
@@ -186,7 +186,7 @@ func newStreamerWithClientBuilder(ctx context.Context, clientBuilder clientBuild
 // configured to do so.
 func (s *Streamer) Write(data interface{}) error {
 	if data == nil {
-		return fmt.Errorf("streamer client write: validate data: %w: nil data", internal.InvalidParamErr)
+		return fmt.Errorf("streamer client write: validate data: %w: nil data", internal.ErrInvalidParam)
 	}
 	job := streamerJob{
 		Data: data,

@@ -35,7 +35,7 @@ func BenchmarkBatchStreamerDefault(b *testing.B) {
 		b.Fatalf("failed to create default Batch streamer: %v", err)
 	}
 	defer streamer.Close()
-	BenchmarkStreamer(b, "batch", "default (single item per batch)", streamer, NewTmpDataReader)
+	benchmarkStreamer(b, "batch", "default (single item per batch)", streamer, NewTmpDataReader)
 }
 
 func benchmarkBatchStreamerForParameters(b *testing.B, workerCount int, workerQueueSize int, maxBatchDelay time.Duration) {
@@ -55,7 +55,7 @@ func benchmarkBatchStreamerForParameters(b *testing.B, workerCount int, workerQu
 		b.Fatalf("failed to create custom Batch streamer: %v", err)
 	}
 	defer streamer.Close()
-	BenchmarkStreamer(
+	benchmarkStreamer(
 		b, "batch",
 		fmt.Sprintf(
 			"single item per batch, workeCount=%d;workerQueue=%d;maxBatchDelay=%v",

@@ -18,12 +18,9 @@ import "errors"
 
 var (
 	// internal error used in case an input parameter was invalid.
-	InvalidParamErr = errors.New("invalid parameter")
+	ErrInvalidParam = errors.New("invalid parameter")
 
-	// internal error used in case a feature still in development was already used.
-	NotSupportedErr = errors.New("not supported")
-
-	MutuallyExclusiveConfigsErr     = errors.New("you cannot define both a storage Client and a batch client at once")
-	AutoDetectSchemaNotSupportedErr = errors.New("BQ batch client: autoDetect is only supported for JSON and CSV format")
-	ProtobufOrSChemaRequiredErr     = errors.New("StorageClientConfig invalid: either a Protobuf descriptor or BigQuery schema is required")
+	ErrMutuallyExclusiveConfigs     = errors.New("you cannot define both a storage Client and a batch client at once")
+	ErrAutoDetectSchemaNotSupported = errors.New("BQ batch client: autoDetect is only supported for JSON and CSV format")
+	ErrProtobufOrSChemaRequired     = errors.New("StorageClientConfig invalid: either a Protobuf descriptor or BigQuery schema is required")
 )

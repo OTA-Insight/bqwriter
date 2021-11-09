@@ -22,7 +22,7 @@ import (
 // we know how  to support nested types
 
 // NewProtoTmpData create a Protobuf-based temporary data model,
-// implented using the DataGenerator syntax.
+// implented using the dataGenerator syntax.
 func NewProtoTmpData(insertID string, name string, uuid int64, timestamp time.Time, truth bool, _parameters map[string]string) interface{} {
 	// parameterSlice := make([]*TemporaryDataParameterProto3, 0, len(parameters))
 	// for name, value := range parameters {

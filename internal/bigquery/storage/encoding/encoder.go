@@ -20,14 +20,14 @@ import "errors"
 // in order to encode the data into the protobuf expected format.
 type Encoder interface {
 	// EncodeRows encodes the data, as understood by the encoder,
-	// into proto-encoded binary rows. InvalidDataError is to be returned
+	// into proto-encoded binary rows. ErrInvalidData is to be returned
 	// in case the data was of an unexpected type or format. Any other error
 	// can be returned for all other possible error cases.
 	EncodeRows(data interface{}) (rows [][]byte, err error)
 }
 
 var (
-	// InvalidDataError is an error that can be returned by an Encoder
+	// ErrInvalidData is an error that can be returned by an Encoder
 	// in case the given input data was invalid within the context of that encoder.
-	InvalidDataError = errors.New("invalid data")
+	ErrInvalidData = errors.New("invalid data")
 )

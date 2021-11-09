@@ -133,6 +133,11 @@ type (
 		ProtobufDescriptor *descriptorpb.DescriptorProto
 	}
 
+	// BatchClientConfig is used to configure a batch (load) driven Streamer Client.
+	// All properties have sane defaults as defined and used by this Go package.
+	//
+	// A non-nil BatchClientConfig instance has to be passed in to the BatchClient property of
+	// a StreamerConfig in order to indicate the Streamer should be build using the Batch (load) Client under the hood.
 	BatchClientConfig struct {
 		// BigQuerySchema can be used in order to use a data encoder for the batchClient
 		// based on a dynamically defined BigQuery schema in order to be able to encode any struct,
@@ -304,7 +309,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 		return
 	}
 	if cfg.ProtobufDescriptor == nil && cfg.BigQuerySchema == nil {
-		return nil, internal.ProtobufOrSChemaRequiredErr
+		return nil, internal.ErrProtobufOrSChemaRequired
 	}
 
 	// we want to create a new config, as to not mutate an input param (the cfg),
@@ -353,7 +358,7 @@ func sanitizeBatchClientConfig(cfg *BatchClientConfig) (batchCfg *BatchClientCon
 
 	// If the format is not JSON or CSV and no schema is provided, error as this is only supported for json and csv.
 	if batchCfg.BigQuerySchema == nil && batchCfg.SourceFormat != bigquery.JSON && batchCfg.SourceFormat != bigquery.CSV {
-		return nil, internal.AutoDetectSchemaNotSupportedErr
+		return nil, internal.ErrAutoDetectSchemaNotSupported
 	}
 
 	return batchCfg, nil

@@ -16,5 +16,5 @@ package test
 
 import "errors"
 
-// StaticErr is an error used for testing purposes only
-var StaticErr = errors.New("static test error")
+// ErrStatic is an error used for testing purposes only
+var ErrStatic = errors.New("static test error")

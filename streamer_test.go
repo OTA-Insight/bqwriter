@@ -52,7 +52,7 @@ func TestNewStreamerInputErrors(t *testing.T) {
 			nil,
 		)
 		test.AssertError(t, err)
-		test.AssertIsError(t, err, internal.InvalidParamErr)
+		test.AssertIsError(t, err, internal.ErrInvalidParam)
 		test.AssertNil(t, builder)
 	}
 }
@@ -215,12 +215,12 @@ func TestStreamerWriteErrorNilData(t *testing.T) {
 	defer streamer.Close()
 	err := streamer.Write(nil)
 	test.AssertError(t, err)
-	test.AssertIsError(t, err, internal.InvalidParamErr)
+	test.AssertIsError(t, err, internal.ErrInvalidParam)
 }
 
 func TestStreamerCloseError(t *testing.T) {
 	client, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
-	client.AddNextError(fmt.Errorf("some client close error: %w", test.StaticErr))
+	client.AddNextError(fmt.Errorf("some client close error: %w", test.ErrStatic))
 	streamer.Close()
 	// this is logged to stderr, so should be okay for user
 }
@@ -250,5 +250,5 @@ func TestNewStreamerMutuallyExclusiveConfigErr(t *testing.T) {
 	)
 
 	test.AssertError(t, err)
-	test.AssertIsError(t, err, internal.MutuallyExclusiveConfigsErr)
+	test.AssertIsError(t, err, internal.ErrMutuallyExclusiveConfigs)
 }

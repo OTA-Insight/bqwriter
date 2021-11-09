@@ -58,16 +58,16 @@ type Client struct {
 // See the documentation of Client for more information how to use it.
 func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, dp *descriptorpb.DescriptorProto, logger log.Logger) (*Client, error) {
 	if projectID == "" {
-		return nil, fmt.Errorf("bq storage client creation: validate projectID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("bq storage client creation: validate projectID: %w: missing", internal.ErrInvalidParam)
 	}
 	if dataSetID == "" {
-		return nil, fmt.Errorf("bq storage client creation: validate dataSetID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("bq storage client creation: validate dataSetID: %w: missing", internal.ErrInvalidParam)
 	}
 	if tableID == "" {
-		return nil, fmt.Errorf("bq storage client creation: validate tableID: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("bq storage client creation: validate tableID: %w: missing", internal.ErrInvalidParam)
 	}
 	if encoder == nil {
-		return nil, fmt.Errorf("bq storage client creation: validate encoder: %w: missing", internal.InvalidParamErr)
+		return nil, fmt.Errorf("bq storage client creation: validate encoder: %w: missing", internal.ErrInvalidParam)
 	}
 
 	// only debug log that a descriptor is not given, as it is not seen as a critical error

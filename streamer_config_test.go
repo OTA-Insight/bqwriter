@@ -504,7 +504,7 @@ func TestSanitizeBatchConfigAutoDetectErr(t *testing.T) {
 			SourceFormat: testCase,
 		}
 		outCfg, err := sanitizeStreamerConfig(cfg)
-		test.AssertIsError(t, err, internal.AutoDetectSchemaNotSupportedErr)
+		test.AssertIsError(t, err, internal.ErrAutoDetectSchemaNotSupported)
 		test.AssertNil(t, outCfg)
 	}
 }
