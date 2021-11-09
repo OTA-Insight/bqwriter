@@ -574,13 +574,10 @@ func TestSanitizeBatchConfigDefaults(t *testing.T) {
 
 		InputWriteDisposition    bigquery.TableWriteDisposition
 		ExpectedWriteDisposition bigquery.TableWriteDisposition
-
-		ExpectedAutoDetect bool
 	}{
 		{
 			ExpectedSourceFormat:     expectedDefaultBatchClient.SourceFormat,
 			ExpectedWriteDisposition: expectedDefaultBatchClient.WriteDisposition,
-			ExpectedAutoDetect:       true,
 		},
 		{
 			InputBigQuerySchema:      schema,
@@ -607,13 +604,11 @@ func TestSanitizeBatchConfigDefaults(t *testing.T) {
 			InputSourceFormat:        bigquery.CSV,
 			ExpectedSourceFormat:     bigquery.CSV,
 			ExpectedWriteDisposition: expectedDefaultBatchClient.WriteDisposition,
-			ExpectedAutoDetect:       true,
 		},
 		{
 			ExpectedSourceFormat:     expectedDefaultBatchClient.SourceFormat,
 			InputWriteDisposition:    bigquery.WriteTruncate,
 			ExpectedWriteDisposition: bigquery.WriteTruncate,
-			ExpectedAutoDetect:       true,
 		},
 	}
 
@@ -638,7 +633,6 @@ func TestSanitizeBatchConfigDefaults(t *testing.T) {
 			FailForUnknownValues: testCase.ExpectedFailForUnknownValues,
 			CSVOptions:           testCase.ExpectedCSVOptions,
 			WriteDisposition:     testCase.ExpectedWriteDisposition,
-			autoDetect:           testCase.ExpectedAutoDetect,
 		}
 		// and finally piggy-back on our other logic
 		assertStreamerConfig(t, inputCfg, expectedOutputCfg)
