@@ -25,7 +25,6 @@ import (
 type TestClientConfig struct {
 	BigQuerySchema   *bigquery.Schema
 	SourceFormat     bigquery.DataFormat
-	AutoDetect       bool
 	CSVOptions       *bigquery.CSVOptions
 	WriteDisposition bigquery.TableWriteDisposition
 }
@@ -40,16 +39,15 @@ func newTestClient(t *testing.T, cfg *TestClientConfig) (*Client, error) {
 	}
 	client, err := newClient(
 		bqClient, "test", "test",
-		false, cfg.AutoDetect, cfg.SourceFormat, cfg.WriteDisposition,
+		false, cfg.SourceFormat, cfg.WriteDisposition,
 		cfg.BigQuerySchema, cfg.CSVOptions)
 	return client, err
 }
 
 func TestBatchClientValidConfig(t *testing.T) {
-	client, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON, AutoDetect: true, WriteDisposition: bigquery.WriteAppend})
+	client, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON, WriteDisposition: bigquery.WriteAppend})
 	test.AssertNoError(t, err)
 
-	test.AssertTrue(t, client.autoDetect)
 	test.AssertEqual(t, client.sourceFormat, bigquery.JSON)
 	test.AssertNil(t, client.csvOptions)
 	test.AssertNil(t, client.schema)
@@ -57,7 +55,7 @@ func TestBatchClientValidConfig(t *testing.T) {
 }
 
 func TestBatchClientInvalidData(t *testing.T) {
-	client, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON, AutoDetect: true})
+	client, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON})
 	test.AssertNoError(t, err)
 
 	_, putErr := client.Put([]string{})
@@ -65,7 +63,7 @@ func TestBatchClientInvalidData(t *testing.T) {
 }
 
 func TestBatchClientFlushNop(t *testing.T) {
-	client, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON, AutoDetect: true})
+	client, err := newTestClient(t, &TestClientConfig{SourceFormat: bigquery.JSON})
 	test.AssertNoError(t, err)
 
 	flushErr := client.Flush()

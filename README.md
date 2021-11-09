@@ -264,18 +264,24 @@ import (
 
 func main() {
     ctx := context.Background()
-    
-    // create a BQ (stream) writer thread-safe client,
+	
+    // By using new(bqwriter.BatchClientConfig) we will create a config with bigquery.JSON as default format
+    // And the schema will be autodetected via the data.
+    // Possible options are: 
+    // - BigQuerySchema: Schema to use to upload to bigquery.
+    // - SourceFormat: Format of the data we want to send.
+    // - FailForUnknownValues: will treat records that have unknown values as invalid records.
+    // - WriteDisposition: Defines what the write disposition should be to the bigquery table.
+    batchConfig := new(bqwriter.BatchClientConfig)
+	
+    // create a BQ (stream) writer thread-safe client.
     bqWriter, err := bqwriter.NewStreamer(
         ctx,
         "my-gcloud-project",
         "my-bq-dataset",
         "my-bq-table",
         &bqwriter.StreamerConfig{
-            BatchClient: &bqwriter.BatchClientConfig{
-                AutoDetect:   true,
-                SourceFormat: bigquery.JSON,
-            },
+            BatchClient: batchConfig
         },
     )
 
@@ -286,7 +292,7 @@ func main() {
 		
     // do not forget to close, to close all background resources opened
     // when creating the BQ (stream) writer client
-	defer bqWriter.Close()
+    defer bqWriter.Close()
 
     // Create some data, make sure your data implements the io.Reader interface so it can be used!
     type person struct {
@@ -332,24 +338,18 @@ as you are required to configure it with at least a `SourceFormat`.
 - `BigQuerySchema` BigQuerySchema can be used in order to use a data encoder for the batchClient
   based on a dynamically defined BigQuery schema in order to be able to encode any struct,
   JsonMarshaler, Json-encoded byte slice, Stringer (text proto) or string (also text proto)
-  as a valid protobuf message based on the given BigQuery Schema. 
-
-  This config is only required if autoDetect is false.
+  as a valid protobuf message based on the given BigQuery Schema.
+  
+  The `BigQuerySchema` is required for all `SourceFormat` except for `bigquery.CSV` and `bigquery.JSON` as these
+  2 formats will autodetect the schema via the content.
 
 - `SourceFormat` is used to define the format that the data is that we will send.
   Possible options are:
-  - bigquery.CSV
-  - bigquery.Avro
-  - bigquery.JSON
-  - bigquery.Parquet
-  - bigquery.ORC
-
-- `AutoDetect` can be used so that the client will determine the data format from the data
-  that needs to be uploaded
-  This is only supported if the SourceFormat is bigquery.CSV or bigquery.JSON
-  This option is mutually exclusive with the BigQuerySchema option.
-  
-  Defaults to false.
+  - `bigquery.CSV`
+  - `bigquery.Avro`
+  - `bigquery.JSON`
+  - `bigquery.Parquet`
+  - `bigquery.ORC`
 
 - `FailForUnknownValues` causes records containing such values
   to be treated as invalid records.

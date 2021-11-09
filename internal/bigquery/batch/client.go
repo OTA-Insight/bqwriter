@@ -39,7 +39,6 @@ type Client struct {
 
 	schema              *bigquery.Schema
 	sourceFormat        bigquery.DataFormat
-	autoDetect          bool
 	ignoreUnknownValues bool
 	csvOptions          *bigquery.CSVOptions
 	writeDisposition    bigquery.TableWriteDisposition
@@ -48,7 +47,7 @@ type Client struct {
 }
 
 // NewClient creates a new Client.
-func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues, autoDetect bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
+func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
 	// NOTE: we are using the background Context,
 	// as to ensure that we can always write to the client,
 	// even when the actual parent context is already done.
@@ -60,13 +59,13 @@ func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues, autoDe
 
 	return newClient(
 		client, dataSetID, tableID,
-		ignoreUnknownValues, autoDetect,
+		ignoreUnknownValues,
 		sourceFormat, writeDisposition,
 		schema, csvOptions,
 	)
 }
 
-func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknownValues, autoDetect bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
+func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, csvOptions *bigquery.CSVOptions) (*Client, error) {
 	return &Client{
 		client: client,
 
@@ -75,7 +74,6 @@ func newClient(client *bigquery.Client, dataSetID, tableID string, ignoreUnknown
 
 		schema:              schema,
 		sourceFormat:        sourceFormat,
-		autoDetect:          autoDetect,
 		ignoreUnknownValues: ignoreUnknownValues,
 		csvOptions:          csvOptions,
 		writeDisposition:    writeDisposition,
@@ -91,13 +89,15 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 
 	ctx := context.Background()
 	source := bigquery.NewReaderSource(reader)
-	source.AutoDetect = bqc.autoDetect
 	source.SourceFormat = bqc.sourceFormat
 	source.IgnoreUnknownValues = bqc.ignoreUnknownValues
 	if bqc.csvOptions != nil {
 		source.CSVOptions = *bqc.csvOptions
 	}
-	if bqc.schema != nil {
+
+	if bqc.schema == nil {
+		source.AutoDetect = true
+	} else {
 		source.Schema = *bqc.schema
 	}
 

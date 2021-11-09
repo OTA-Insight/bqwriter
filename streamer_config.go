@@ -199,11 +199,6 @@ type (
 		//
 		// Defaults to bigquery.WriteAppend, which will append the data to the table.
 		WriteDisposition bigquery.TableWriteDisposition
-
-		// autoDetect is used internally to indicate that the bigquery client will determine the data format from the
-		// given data. This value will be set to true if the BigQuerySchema is nil (e.g. unspecified) and if the
-		// SourceFormat is bigquery.CSV or bigquery.JSON.
-		autoDetect bool
 	}
 )
 
@@ -429,12 +424,8 @@ func sanitizeBatchClientConfig(cfg *BatchClientConfig) (batchCfg *BatchClientCon
 	}
 
 	// If the format is not JSON or CSV and no schema is provided, error as this is only supported for json and csv.
-	if batchCfg.BigQuerySchema == nil && (batchCfg.SourceFormat != bigquery.JSON && batchCfg.SourceFormat != bigquery.CSV) {
+	if batchCfg.BigQuerySchema == nil && batchCfg.SourceFormat != bigquery.JSON && batchCfg.SourceFormat != bigquery.CSV {
 		return nil, internal.AutoDetectSchemaNotSupportedErr
-	}
-
-	if batchCfg.BigQuerySchema == nil {
-		batchCfg.autoDetect = true
 	}
 
 	return batchCfg, nil

@@ -94,7 +94,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 			} else if batchCfg != nil {
 				client, err := batch.NewClient(
 					projectID, dataSetID, tableID,
-					!batchCfg.FailForUnknownValues, batchCfg.autoDetect,
+					!batchCfg.FailForUnknownValues,
 					batchCfg.SourceFormat, batchCfg.WriteDisposition,
 					batchCfg.BigQuerySchema, batchCfg.CSVOptions,
 				)
