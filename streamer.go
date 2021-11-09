@@ -87,7 +87,9 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: %w", err)
 				}
 				return client, nil
-			} else if batchCfg != nil {
+			}
+
+			if batchCfg != nil {
 				client, err := batch.NewClient(
 					projectID, dataSetID, tableID,
 					!batchCfg.FailForUnknownValues,

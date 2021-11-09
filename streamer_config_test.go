@@ -486,3 +486,25 @@ func TestSanitizeBatchConfigDefaults(t *testing.T) {
 		assertStreamerConfig(t, inputCfg, expectedOutputCfg)
 	}
 }
+
+func TestSanitizeBatchConfigAutoDetectErr(t *testing.T) {
+	// test to ensure that auto detect is not allowed in config,
+	// if source isn't default, Json or CSV.
+	testCases := []bigquery.DataFormat{
+		"foo",
+		bigquery.Avro,
+		bigquery.Parquet,
+		bigquery.ORC,
+		bigquery.GoogleSheets,
+	}
+
+	for _, testCase := range testCases {
+		cfg := new(StreamerConfig)
+		cfg.BatchClient = &BatchClientConfig{
+			SourceFormat: testCase,
+		}
+		outCfg, err := sanitizeStreamerConfig(cfg)
+		test.AssertIsError(t, err, internal.AutoDetectSchemaNotSupportedErr)
+		test.AssertNil(t, outCfg)
+	}
+}
