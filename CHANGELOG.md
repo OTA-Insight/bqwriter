@@ -8,10 +8,19 @@
 - remove forked managedwriter code:
   - managedwriter is still in active development and having to maintain our own copy would be almost a project on itself;
   - author seems to be willing to fix our issues where appropriate;
+  - author also is willing to promote this package to the official bigquery Golang API.
+    There is no time promise here, the only condition seems to be that the author has to be happy with the API signatures;
+  - there are a couple of open issues tracked for the official Google managedwriter which remain unresolved:
+    - make GRPC/ManagedWriter stats tracking opt-in or configurable: https://github.com/googleapis/google-cloud-go/issues/5100;
+    - document and support correctly nested proto types for the storage API client: https://github.com/googleapis/google-cloud-go/issues/5097;
+    - be able to configure and globally limit the gax.Retryer used for the storage API client: https://github.com/googleapis/google-cloud-go/issues/5094;
 
 Bug Fixes:
 
-- storage API ...
+- storage API:
+  - fixes related to EOF errors are fixed by switching over to the latest version of the BQ Storage managedwriter;
+- logger:
+  - std logger (STDERR) was logging without the use of newlines to separate log statements;
 
 work in progress
 
