@@ -3,9 +3,10 @@
 ## [v0.5.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.4.0...v0.4.1) (2021-11-12 ETA)
 
 - add batch upload support (https://cloud.google.com/bigquery/docs/batch-loading-data),
-  this is a third client next to the already supported InsertAll (legacy) and storage API clients;
+  this is a third client next to the already supported InsertAll (legacy) and storage API clients,
+  fixes issue #2 with PR #5;
 - add benchmark code and results with production-ready Google Cloud infrastructure, load and data;
-- remove forked managedwriter code:
+- remove forked managedwriter code (fixes issue #4):
   - managedwriter is still in active development and having to maintain our own copy would be almost a project on itself;
   - author seems to be willing to fix our issues where appropriate;
   - author also is willing to promote this package to the official bigquery Golang API.
