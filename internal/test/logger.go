@@ -14,9 +14,17 @@
 
 package test
 
+// Logger is a `bqwriter/log.Logger` implementation for (unit) testing purposes only.
 type Logger struct{}
 
-func (Logger) Debug(_args ...interface{})                    {}
+// Debug implements bqwriter/log.Logger.Debug
+func (Logger) Debug(_args ...interface{}) {}
+
+// Debugf implements bqwriter/log.Logger.Debugf
 func (Logger) Debugf(_template string, _args ...interface{}) {}
-func (Logger) Error(_args ...interface{})                    {}
+
+// Error implements bqwriter/log.Logger.Error
+func (Logger) Error(_args ...interface{}) {}
+
+// Errorf implements bqwriter/log.Logger.Errorf
 func (Logger) Errorf(_template string, _args ...interface{}) {}

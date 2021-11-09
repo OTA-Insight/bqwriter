@@ -66,7 +66,7 @@ func AssertNoError(t *testing.T, err error, contextArgs ...interface{}) bool {
 	return true
 }
 
-// AssertNoError can be used to (test) assert if an error is not a specific kind of error,
+// AssertIsNotError can be used to (test) assert if an error is not a specific kind of error,
 // logging a message with context and stacktrace if false
 func AssertIsNotError(t *testing.T, err error, target error, contextArgs ...interface{}) bool {
 	if errors.Is(err, target) {
