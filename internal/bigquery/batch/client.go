@@ -113,7 +113,7 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 
 	if err := status.Err(); err != nil {
 		for _, statErr := range status.Errors {
-			bqc.logger.Errorf("BQ batch client: status error: %w", statErr)
+			bqc.logger.Errorf("BQ batch client: status error: %v", statErr)
 		}
 		return false, fmt.Errorf("BQ batch client: job returned an error status %w", err)
 	}

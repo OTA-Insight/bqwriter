@@ -366,6 +366,17 @@ in order to create a Batch client.
 Note that you cannot create a blank `BatchClientConfig` or any kind of default,
 as you are required to configure it with at least a `SourceFormat`.
 
+When using the Json format make sure the casing of your fields matches exactly the
+fields defined in your BigQuery schema of the desired target table. While field names
+are normally considered case insensitive, they do seem to cause "duplicate field" issues
+as part of the batch load io.Reader decode process such as the following ones:
+
+```
+Job returned an error status {Location: "query"; Message: "Duplicate(Case Insensitive) field names: value and Value. Table: tmp_2e6895b9_b44b_4b5c_9941_def9a10e85d5_source"; Reason: "invalidQuery"}
+```
+
+Fix the casing of your json definition and this error should go away.
+
 **BatchClientConfig options**:
 
 - `BigQuerySchema` can be used in order to use a data encoder for the batchClient

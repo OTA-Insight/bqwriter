@@ -104,11 +104,11 @@ func (td *tmpData) Save() (row map[string]bigquery.Value, insertID string, err e
 	}
 	timestamp := td.Timestamp.String()
 	return map[string]bigquery.Value{
-		"name":       td.Name,
-		"uuid":       td.Uuid,
-		"timestamp":  timestamp[:len(timestamp)-3],
-		"truth":      td.Truth,
-		"parameters": parameters,
+		"Name":       td.Name,
+		"Uuid":       td.Uuid,
+		"Timestamp":  timestamp[:len(timestamp)-3],
+		"Truth":      td.Truth,
+		"Parameters": parameters,
 	}, td.InsertID, nil
 }
 
@@ -123,10 +123,10 @@ func (tp *tmpDataParameter) asBigqueryValue() bigquery.Value {
 func (td *tmpData) MarshalJSON() ([]byte, error) {
 	// nolint: wrapcheck
 	return json.Marshal(map[string]interface{}{
-		"name":       td.Name,
-		"uuid":       td.Uuid,
-		"timestamp":  td.Timestamp.In(time.Local).Unix(),
-		"truth":      td.Truth,
-		"parameters": td.Parameters,
+		"Name":       td.Name,
+		"Uuid":       td.Uuid,
+		"Timestamp":  td.Timestamp,
+		"Truth":      td.Truth,
+		"Parameters": td.Parameters,
 	})
 }

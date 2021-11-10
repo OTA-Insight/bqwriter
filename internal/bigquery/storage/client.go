@@ -209,7 +209,7 @@ func (bqc *Client) Close() error {
 		close(bqc.appendResultCh)
 	}()
 	if err := bqc.stream.Close(); err != nil && !errors.Is(err, io.EOF) {
-		bqc.logger.Errorf("close BQ storage client: close stream: %w", err)
+		bqc.logger.Errorf("close BQ storage client: close stream: %v", err)
 	}
 	if err := bqc.client.Close(); err != nil {
 		return fmt.Errorf("close BQ storage client: close internal storage writer client: %w", err)
