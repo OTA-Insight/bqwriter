@@ -110,19 +110,23 @@ func main() {
 	testCh := make(chan streamerTest)
 	resultCh := make(chan string)
 
+	// nolint: ifshort
 	iterations := *iterations
 	if iterations <= 0 {
 		iterations = defaultIterations
 	}
 
+	// nolint: ifshort
 	bqProject := *bqProject
 	if bqProject == "" {
 		bqProject = defaultBQProject
 	}
+	// nolint: ifshort
 	bqDataset := *bqDataset
 	if bqDataset == "" {
 		bqDataset = defaultBQDataset
 	}
+	// nolint: ifshort
 	bqTable := *bqTable
 	if bqTable == "" {
 		bqTable = defaultBQTable
@@ -147,7 +151,7 @@ func main() {
 					if !ok {
 						return
 					}
-					// nolint: lostcancel
+					// nolint: govet
 					testCtx, _ := context.WithTimeout(ctx, time.Second*10)
 					err := test(
 						testCtx,
