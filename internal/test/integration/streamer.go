@@ -21,13 +21,12 @@ import (
 	"time"
 
 	"github.com/OTA-Insight/bqwriter"
-	"github.com/OTA-Insight/bqwriter/log"
 )
 
 type dataGenerator = func(insertID string, name string, uuid int64, timestamp time.Time, truth bool, parameters map[string]string) interface{}
 
 func newGenerator(ctx context.Context, streamerName, testName string, iterations int, gen dataGenerator) <-chan interface{} {
-	ch := make(chan interface{})
+	ch := make(chan interface{}, 1)
 	insertIDPrefix := fmt.Sprintf("test-%d-", time.Now().Unix())
 	go func() {
 		defer close(ch)
@@ -60,10 +59,10 @@ var (
 	randomBranchParam = []string{"main", "test", "staging", "dev"}
 )
 
-func testStreamer(ctx context.Context, iterations int, streamerName string, testName string, streamer *bqwriter.Streamer, gen dataGenerator, logger log.Logger) {
+func testStreamer(ctx context.Context, iterations int, streamerName string, testName string, streamer *bqwriter.Streamer, gen dataGenerator, logger Logger) {
 	startTime := time.Now()
 	defer func() {
-		logger.Debugf(
+		logger.Infof(
 			"testStreamer: streamer=%s;testName=%s;iterations=%d: duration: %v",
 			streamerName, testName, iterations, time.Since(startTime),
 		)
@@ -73,7 +72,7 @@ func testStreamer(ctx context.Context, iterations int, streamerName string, test
 	for data := range newGenerator(ctx, streamerName, testName, iterations, gen) {
 		err := streamer.Write(data)
 		if err != nil {
-			logger.Errorf("streamer write failed for data %v: %w", data, err)
+			logger.Errorf("streamer write failed for data %v: %v", data, err)
 		}
 	}
 }

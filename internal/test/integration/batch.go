@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/OTA-Insight/bqwriter"
-	"github.com/OTA-Insight/bqwriter/log"
 )
 
 type genReader struct {
@@ -86,9 +85,9 @@ func (gr *genReader) Read(p []byte) (int, error) {
 	}
 }
 
-func testBatchStreamerDefault(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testBatchStreamerDefault(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	streamer, err := bqwriter.NewStreamer(
-		ctx,
+		context.Background(),
 		projectID,
 		datasetID,
 		tableID,

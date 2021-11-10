@@ -21,12 +21,11 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-
-	"github.com/OTA-Insight/bqwriter/log"
+	"time"
 )
 
 const (
-	defaultIterations = 1000
+	defaultIterations = 100
 
 	defaultBQProject = "oi-bigquery"
 	defaultBQDataset = "benchmarks_bqwriter"
@@ -37,6 +36,7 @@ var (
 	iterations = flag.Int("iterations", defaultIterations, "how many values to write to each of the different streamer tests")
 	workers    = flag.Int("workers", runtime.NumCPU(), "how many workers to use to run tests in parallel")
 	streamers  = flag.String("streamers", "", "csv of streamers to test, one or multiple of following options: insertall, storage, batch")
+	debug      = flag.Bool("debug", false, "enable to show debug logs")
 
 	bqProject = flag.String("project", defaultBQProject, "BigQuery project to write data to")
 	bqDataset = flag.String("dataset", defaultBQDataset, "BigQuery dataset to write data to")
@@ -47,7 +47,7 @@ func init() {
 	flag.Parse()
 }
 
-type streamerTest = func(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error
+type streamerTest = func(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error
 
 func createTestsForStreamers(streamers string) []streamerTest {
 	var tests []streamerTest
@@ -97,31 +97,32 @@ func main() {
 		tests = createTestsForStreamers("insertall,storage,batch")
 	}
 
+	logger := Logger{
+		ShowDebug: *debug,
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	defer func() {
+		logger.Info("cancel global context")
+		cancel()
+	}()
 
 	testCh := make(chan streamerTest)
 	resultCh := make(chan string)
 
-	// nolint: ifshort
 	iterations := *iterations
 	if iterations <= 0 {
 		iterations = defaultIterations
 	}
 
-	logger := Logger{}
-
-	// nolint: ifshort
 	bqProject := *bqProject
 	if bqProject == "" {
 		bqProject = defaultBQProject
 	}
-	// nolint: ifshort
 	bqDataset := *bqDataset
 	if bqDataset == "" {
 		bqDataset = defaultBQDataset
 	}
-	// nolint: ifshort
 	bqTable := *bqTable
 	if bqTable == "" {
 		bqTable = defaultBQTable
@@ -142,17 +143,22 @@ func main() {
 				select {
 				case <-ctx.Done():
 					return
-				case test := <-testCh:
+				case test, ok := <-testCh:
+					if !ok {
+						return
+					}
+					// nolint: lostcancel
+					testCtx, _ := context.WithTimeout(ctx, time.Second*10)
 					err := test(
-						ctx,
-						iterations, wg, logger,
+						testCtx,
+						iterations, &wg, logger,
 						bqProject, bqDataset, bqTable,
 					)
 					if err != nil {
 						select {
 						case <-ctx.Done():
 							return
-						case resultCh <- fmt.Sprintf("test %T failed with error: %v", test, err):
+						case resultCh <- fmt.Sprintf("test failed with error: %v", err):
 						}
 					}
 					// wait until test is complete
@@ -160,7 +166,7 @@ func main() {
 					select {
 					case <-ctx.Done():
 						return
-					case resultCh <- fmt.Sprintf("test %Tfinished", test):
+					case resultCh <- "test finished":
 					}
 				}
 			}
@@ -178,6 +184,9 @@ func main() {
 				return
 			case result := <-resultCh:
 				results = append(results, result)
+				if len(results) == len(tests) {
+					return
+				}
 			}
 		}
 	}()
@@ -190,18 +199,19 @@ func main() {
 		case testCh <- test:
 		}
 	}
+	close(testCh)
 
 	// wait until all tests have completed
 	workersWG.Wait()
 
 	// print all results
-	logger.Debug("")
-	logger.Debug("----")
-	logger.Debug("")
+	logger.Info("")
+	logger.Info("----")
+	logger.Info("")
 	for _, result := range results {
-		logger.Debug(result)
+		logger.Info(result)
 	}
-	logger.Debug("")
-	logger.Debug("----")
-	logger.Debugf("Bye!")
+	logger.Info("")
+	logger.Info("----")
+	logger.Info("Bye!")
 }

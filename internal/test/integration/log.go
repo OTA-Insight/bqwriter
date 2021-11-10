@@ -21,25 +21,41 @@ import (
 
 // Logger is the builtin implementation of the Logger interface,
 // and logs error messages to the STDERR, but ignores debug messages.
-type Logger struct{}
+type Logger struct {
+	ShowDebug bool
+}
 
 // Debug implements Logger::Debug
 func (stdl Logger) Debug(args ...interface{}) {
-	args = append([]interface{}{"[DEBUG]"}, args...)
+	if stdl.ShowDebug {
+		args = append([]interface{}{"[DEBUG]"}, args...)
+		fmt.Fprintln(os.Stderr, args...)
+	}
+}
+
+func (stdl Logger) Infof(template string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, "[INFO] "+template+"\n", args...)
+}
+
+func (stdl Logger) Info(args ...interface{}) {
+	args = append([]interface{}{"[INFO]"}, args...)
 	fmt.Fprintln(os.Stderr, args...)
 }
 
 // Debugf implements Logger::Debugf
 func (stdl Logger) Debugf(template string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "[DEBUG] "+template+"\n", args...)
+	if stdl.ShowDebug {
+		fmt.Fprintf(os.Stderr, "[DEBUG] "+template+"\n", args...)
+	}
 }
 
 // Error implements Logger::Error
 func (stdl Logger) Error(args ...interface{}) {
+	args = append([]interface{}{"[ERROR]"}, args...)
 	fmt.Fprintln(os.Stderr, args...)
 }
 
 // Errorf implements Logger::Errorf
 func (stdl Logger) Errorf(template string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, template+"\n", args...)
+	fmt.Fprintf(os.Stderr, "[ERROR] "+template+"\n", args...)
 }

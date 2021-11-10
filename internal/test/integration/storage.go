@@ -22,7 +22,6 @@ import (
 
 	"cloud.google.com/go/bigquery/storage/managedwriter/adapt"
 	"github.com/OTA-Insight/bqwriter"
-	"github.com/OTA-Insight/bqwriter/log"
 )
 
 // NOTE: https://github.com/googleapis/google-cloud-go/issues/5097
@@ -31,13 +30,13 @@ import (
 // - known types aren't supported, types need to be converted, e.g. int64 (micro epoch) for timestamp
 // - use proto2, proto3 isn't supported yet (due to the changes, e.g. no required etc)
 
-func testStorageStreamerDefault(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testStorageStreamerDefault(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	protoDescriptor, err := adapt.NormalizeDescriptor((&TemporaryDataProto2{}).ProtoReflect().Descriptor())
 	if err != nil {
 		return fmt.Errorf("failed to create normalized descriptor: %w", err)
 	}
 	streamer, err := bqwriter.NewStreamer(
-		ctx,
+		context.Background(),
 		projectID,
 		datasetID,
 		tableID,
@@ -59,9 +58,9 @@ func testStorageStreamerDefault(ctx context.Context, iterations int, wg sync.Wai
 	return nil
 }
 
-func testStorageStreamerDefaultJson(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testStorageStreamerDefaultJson(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	streamer, err := bqwriter.NewStreamer(
-		ctx,
+		context.Background(),
 		projectID,
 		datasetID,
 		tableID,
@@ -83,13 +82,13 @@ func testStorageStreamerDefaultJson(ctx context.Context, iterations int, wg sync
 	return nil
 }
 
-func testStorageStreamerForParameters(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string, workerCount int, workerQueueSize int, maxBatchDelay time.Duration) error {
+func testStorageStreamerForParameters(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string, workerCount int, workerQueueSize int, maxBatchDelay time.Duration) error {
 	protoDescriptor, err := adapt.NormalizeDescriptor((&TemporaryDataProto2{}).ProtoReflect().Descriptor())
 	if err != nil {
 		return fmt.Errorf("failed to create normalized descriptor: %w", err)
 	}
 	streamer, err := bqwriter.NewStreamer(
-		ctx,
+		context.Background(),
 		projectID,
 		datasetID,
 		tableID,
@@ -123,25 +122,25 @@ func testStorageStreamerForParameters(ctx context.Context, iterations int, wg sy
 	return nil
 }
 
-func testStorageStreamerNoBatchSingleWorkerNoQueue(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testStorageStreamerNoBatchSingleWorkerNoQueue(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	return testStorageStreamerForParameters(ctx, iterations, wg, logger, projectID, datasetID, tableID, 1, 1, 1)
 }
 
-func testStorageStreamerNoBatchSingleWorkerWithQueue(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testStorageStreamerNoBatchSingleWorkerWithQueue(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	return testStorageStreamerForParameters(ctx, iterations, wg, logger, projectID, datasetID, tableID, 1, 8, 1)
 }
 
-func testStorageStreamerNoBatchMultiWorkerNoQueue(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testStorageStreamerNoBatchMultiWorkerNoQueue(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	return testStorageStreamerForParameters(ctx, iterations, wg, logger, projectID, datasetID, tableID, 4, 1, 1)
 }
 
-func testStorageStreamerNoBatchMultiWorkerQueue(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testStorageStreamerNoBatchMultiWorkerQueue(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	return testStorageStreamerForParameters(ctx, iterations, wg, logger, projectID, datasetID, tableID, 4, 8, 1)
 }
 
-func testJsonStorageStreamerForParameters(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string, workerCount int, workerQueueSize int, maxBatchDelay time.Duration) error {
+func testJsonStorageStreamerForParameters(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string, workerCount int, workerQueueSize int, maxBatchDelay time.Duration) error {
 	streamer, err := bqwriter.NewStreamer(
-		ctx,
+		context.Background(),
 		projectID,
 		datasetID,
 		tableID,
@@ -174,18 +173,18 @@ func testJsonStorageStreamerForParameters(ctx context.Context, iterations int, w
 	return nil
 }
 
-func testJsonStorageStreamerNoBatchSingleWorkerNoQueue(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testJsonStorageStreamerNoBatchSingleWorkerNoQueue(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	return testJsonStorageStreamerForParameters(ctx, iterations, wg, logger, projectID, datasetID, tableID, 1, 1, 1)
 }
 
-func testJsonStorageStreamerNoBatchSingleWorkerWithQueue(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testJsonStorageStreamerNoBatchSingleWorkerWithQueue(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	return testJsonStorageStreamerForParameters(ctx, iterations, wg, logger, projectID, datasetID, tableID, 1, 8, 1)
 }
 
-func testJsonStorageStreamerNoBatchMultiWorkerNoQueue(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testJsonStorageStreamerNoBatchMultiWorkerNoQueue(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	return testJsonStorageStreamerForParameters(ctx, iterations, wg, logger, projectID, datasetID, tableID, 4, 1, 1)
 }
 
-func testJsonStorageStreamerNoBatchMultiWorkerQueue(ctx context.Context, iterations int, wg sync.WaitGroup, logger log.Logger, projectID, datasetID, tableID string) error {
+func testJsonStorageStreamerNoBatchMultiWorkerQueue(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
 	return testJsonStorageStreamerForParameters(ctx, iterations, wg, logger, projectID, datasetID, tableID, 4, 8, 1)
 }
