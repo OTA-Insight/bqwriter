@@ -218,6 +218,9 @@ protoDescriptor := protodesc.ToDescriptorProto((&protodata.MyCustomProtoMessage{
 //    - this means the line above would change to:
 //      `protoDescriptor := adapt.NormalizeDescriptor((&protodata.MyCustomProtoMessage{}).ProtoReflect().Descriptor())`,
 //      which does require the `"cloud.google.com/go/bigquery/storage/managedwriter/adapt"` package to be imported;
+//  - known types cannot be used, you'll need to use type conversions instead
+//    https://cloud.google.com/bigquery/docs/write-api#data_type_conversions,
+//    e.g. int64 (micro epoch) instead of the known Google Timestamp proto type;
 
 // create a BQ (stream) writer thread-safe client,
 bqWriter, err := bqwriter.NewStreamer(
@@ -271,6 +274,9 @@ in the correct format as Protobuf encoded binary data.
 
 `ProtobufDescriptor` is preferred as you might have to pay a performance penalty
 should you want to use the `BigQuerySchema` instead.
+
+You can check out [./internal/test/benchmark/temporary_data_proto2.proto](./internal/test/benchmark/temporary_data_proto2.proto) for an example of a proto message that can be sent over the wire. The BigQuery
+schema for that definition can be found in [./internal/test/benchmark/tmpdata.go](./internal/test/benchmark/tmpdata.go). Finally, you can get inspired by [./internal/test/benchmark/generate.go](./internal/test/benchmark/generate.go) to know how to generate the required Go code in order for you to configure your streamer with the right proto descriptor and being able to send rows of data using your proto definitions.
 
 ### Batch Streamer
 
