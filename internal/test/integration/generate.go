@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package benchmark
+package main
 
 //go:generate protoc --go_out=. --go_opt=paths=source_relative temporary_data_proto2.proto

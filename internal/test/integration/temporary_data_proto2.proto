@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021 OTA Insight Ltd
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,8 +13,8 @@
 // limitations under the License.
 
 syntax = "proto2";
-package benchmark;
-option go_package = "github.com/OTA-Insight/bqwriter/internal/test/benchmark";
+package main;
+option go_package = "github.com/OTA-Insight/bqwriter/internal/test/main";
 
 // NOTE: The proto well-known types aren't yet properly supported,
 // and Timestamp is among them. The public docs have a section on wire format conversions:
@@ -35,5 +35,5 @@ message TemporaryDataProto2 {
     // sent over the wire as microseconds epoch
     optional int64 timestamp = 3;
     optional bool truth = 4;
-    repeated benchmark.TemporaryDataParameterProto2 parameters = 5;
+    repeated TemporaryDataParameterProto2 parameters = 5;
 }
