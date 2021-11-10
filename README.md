@@ -289,6 +289,7 @@ import (
     "bytes"
     "context"
     "encoding/json"
+    "path/filepath"
 
     "github.com/OTA-Insight/bqwriter"
 
@@ -327,35 +328,28 @@ func main() {
     // when creating the BQ (stream) writer client
     defer bqWriter.Close()
 
-    // Create some data, make sure your data implements the io.Reader interface so it can be used!
-    type person struct {
-        ID   int    `json:"id"`
-        Name string `json:"name"`
-    }
-    data := []person{
-        {
-            ID:   1,
-            Name: "John",
-        },
-        {
-            ID:   2,
-            Name: "Jane",
-        },
-    }
-
-    // Convert the data into a reader.
-    var buffer bytes.Buffer
-    for _, r := range data {
-        body, _ := json.Marshal(r)
-        buffer.Write(body)
-        buffer.WriteString("\n") // If the format is JSON, make sure every row is on a newline.
-    }
-
-    // Write the data to bigquery.
-    err := bqWriter.Write(bytes.NewReader(buffer.Bytes()))
+    // a batch-driven BQ Streamer expects an io.Reader,
+    // the source of the data isn't strictly defined as long as the source
+    // format is supported. Usually you would fetch the data from large files
+    // as this is where the batch client really shines
+    files, err := filepath.Glob("/usr/joe/my/data/path/exported_data_*.json")
     if err != nil {
         // TODO: handle error gracefully
         panic(err)
+    }
+    for _, fp := range files {
+        file, err := os.Open(fp)
+        if err != nil {
+            // TODO: handle error gracefully
+            panic(err)
+        }
+
+        // Write the data to bigquery.
+        err := bqWriter.Write(file)
+        if err != nil {
+            // TODO: handle error gracefully
+            panic(err)
+        }
     }
 }
 ```

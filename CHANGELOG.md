@@ -1,5 +1,19 @@
 # Changes
 
+## [v0.5.2](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.2...v0.5.1) (2021-11-12 ETA)
+
+Documentation improvements:
+
+- Rewrite the batch-driven Streamer README example to stay true to its purpose and
+  reflect closer the real world scenarios it is meant to serve in (TODO);
+- Refactor internal benchmark package as a stand-alone binary,
+  and rename it to integration:
+  - The latter because it was from the beginning used
+    as integration dev-triggered tests rather than a true benchmark;
+  - And the first to allow more flexibility and differentiation in how we test what streamer configuration;
+
+work in progress
+
 ## [v0.5.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.1...v0.5.0) (2021-11-10)
 
 Update storage API documentation & end-to-end tests:
