@@ -16,8 +16,6 @@ package benchmark
 
 import (
 	"time"
-
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // NewProtoTmpData create a Protobuf-based temporary data model,
@@ -31,12 +29,11 @@ func NewProtoTmpData(insertID string, name string, uuid int64, timestamp time.Ti
 			Value: []byte(value),
 		})
 	}
+	epochMs := timestamp.UnixNano() / 1000
 	return &TemporaryDataProto2{
-		Name: &name,
-		Uuid: &uuid,
-		Timestamp: &timestamppb.Timestamp{
-			Seconds: timestamp.Unix(),
-		},
+		Name:       &name,
+		Uuid:       &uuid,
+		Timestamp:  &epochMs,
 		Truth:      &truth,
 		Parameters: parameterSlice,
 	}

@@ -16,7 +16,11 @@ syntax = "proto2";
 package benchmark;
 option go_package = "github.com/OTA-Insight/bqwriter/internal/test/benchmark";
 
-import "google/protobuf/timestamp.proto";
+// NOTE: The proto well-known types aren't yet properly supported,
+// and Timestamp is among them. The public docs have a section on wire format conversions:
+// https://cloud.google.com/bigquery/docs/write-api#data_type_conversions.
+// Short answer: use an int64 with epoch-micros for fields that have the Timestamp type...
+// import "google/protobuf/timestamp.proto";
 
 message TemporaryDataParameterProto2 {
     optional string name = 1;
@@ -26,7 +30,10 @@ message TemporaryDataParameterProto2 {
 message TemporaryDataProto2 {
     optional string name = 1;
     optional int64 uuid = 2;
-    optional google.protobuf.Timestamp timestamp = 3;
+    // NOTE: should be of type google.protobuf.Timestamp,
+    // but these known types aren't supported yet, instead it needs to be
+    // sent over the wire as microseconds epoch
+    optional int64 timestamp = 3;
     optional bool truth = 4;
     repeated benchmark.TemporaryDataParameterProto2 parameters = 5;
 }

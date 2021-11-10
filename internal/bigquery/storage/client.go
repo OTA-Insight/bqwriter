@@ -200,13 +200,7 @@ func (bqc *Client) Flush() error {
 
 // Close implements b,fxigquery.Client::Close
 func (bqc *Client) Close() error {
-	if err := bqc.stream.Close(); err != nil && !errors.Is(err, io.EOF) {
-		bqc.logger.Errorf("close BQ storage client: close stream: %w", err)
-	}
-	if err := bqc.client.Close(); err != nil {
-		return fmt.Errorf("close BQ storage client: close internal storage writer client: %w", err)
-	}
-	func() {
+	defer func() {
 		defer func() {
 			if panicErr := recover(); panicErr != nil {
 				bqc.logger.Errorf("close BQ storage client: close internal append result ch: %v", panicErr)
@@ -214,6 +208,12 @@ func (bqc *Client) Close() error {
 		}()
 		close(bqc.appendResultCh)
 	}()
+	if err := bqc.stream.Close(); err != nil && !errors.Is(err, io.EOF) {
+		bqc.logger.Errorf("close BQ storage client: close stream: %w", err)
+	}
+	if err := bqc.client.Close(); err != nil {
+		return fmt.Errorf("close BQ storage client: close internal storage writer client: %w", err)
+	}
 	bqc.wg.Wait()
 	return nil
 }

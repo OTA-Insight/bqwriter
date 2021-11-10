@@ -10,8 +10,11 @@ import (
 	"github.com/OTA-Insight/bqwriter"
 )
 
-// NOTE: created an issue about nested type errors:
-// https://github.com/googleapis/google-cloud-go/issues/5097
+// NOTE: https://github.com/googleapis/google-cloud-go/issues/5097
+// TLDR:
+// - use adapt.NormalizeDescriptor for nested type descriptors
+// - known types aren't supported, types need to be converted, e.g. int64 (micro epoch) for timestamp
+// - use proto2, proto3 isn't supported yet (due to the changes, e.g. no required etc)
 
 func BenchmarkStorageStreamerDefault(b *testing.B) {
 	protoDescriptor, err := adapt.NormalizeDescriptor((&TemporaryDataProto2{}).ProtoReflect().Descriptor())
