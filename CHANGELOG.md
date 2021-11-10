@@ -2,10 +2,24 @@
 
 ## [v0.5.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.1...v0.5.0) (2021-11-10)
 
-- update storage API documentation & end-to-end tests:
-  - storage writer API expects proto2 semantics, proto3 shouldn't be used (yet);
-  - the [normalizeDescriptor](https://pkg.go.dev/cloud.google.com/go/bigquery/storage/managedwriter/adapt#NormalizeDescriptor)
-    should be used to get a descriptor with nested types in order to have it work nicely with nested types;
+Update storage API documentation & end-to-end tests:
+
+- storage writer API expects proto2 semantics, proto3 shouldn't be used (yet);
+- the [normalizeDescriptor](https://pkg.go.dev/cloud.google.com/go/bigquery/storage/managedwriter/adapt#NormalizeDescriptor)
+  should be used to get a descriptor with nested types in order to have it work nicely with nested types;
+- The proto well-known types aren't yet properly supported,
+  and Timestamp is among them. The public docs have a section on wire format conversions:
+  https://cloud.google.com/bigquery/docs/write-api#data_type_conversions.
+  - Short answer: use an int64 with epoch-micros for fields that have the Timestamp type...
+    and this instead of `import "google/protobuf/timestamp.proto"`;
+- Batch client supports auto-detection of BigQuery schema for CSV and Json source formats,
+  with Json you have to be aware in that case however that you match the casing exactly,
+  as otherwise it will complain about duplicate case-insensitive fields, go figure...
+
+Bug Fixes:
+
+- a couple of error logs used wrongfully the directive `%w` for errors instead of `%v`,
+  this has now been corrected and should result in cleaner logs;
 
 ## [v0.5.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.0...v0.4.1) (2021-11-09)
 
