@@ -24,7 +24,7 @@ option go_package = "github.com/OTA-Insight/bqwriter/internal/test/main";
 
 message TemporaryDataParameterProto2 {
     optional string name = 1;
-    optional bytes value = 2;
+    optional string value = 2;
 }
 
 message TemporaryDataProto2 {

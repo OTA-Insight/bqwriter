@@ -275,8 +275,8 @@ in the correct format as Protobuf encoded binary data.
 `ProtobufDescriptor` is preferred as you might have to pay a performance penalty
 should you want to use the `BigQuerySchema` instead.
 
-You can check out [./internal/test/benchmark/temporary_data_proto2.proto](./internal/test/benchmark/temporary_data_proto2.proto) for an example of a proto message that can be sent over the wire. The BigQuery
-schema for that definition can be found in [./internal/test/benchmark/tmpdata.go](./internal/test/benchmark/tmpdata.go). Finally, you can get inspired by [./internal/test/benchmark/generate.go](./internal/test/benchmark/generate.go) to know how to generate the required Go code in order for you to configure your streamer with the right proto descriptor and being able to send rows of data using your proto definitions.
+You can check out [./internal/test/integration/temporary_data_proto2.proto](./internal/test/integration/temporary_data_proto2.proto) for an example of a proto message that can be sent over the wire. The BigQuery
+schema for that definition can be found in [./internal/test/integration/tmpdata.go](./internal/test/integration/tmpdata.go). Finally, you can get inspired by [./internal/test/integration/generate.go](./internal/test/integration/generate.go) to know how to generate the required Go code in order for you to configure your streamer with the right proto descriptor and being able to send rows of data using your proto definitions.
 
 ### Batch Streamer
 

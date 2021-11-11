@@ -77,7 +77,7 @@ func testStorageStreamerDefaultJson(ctx context.Context, iterations int, wg *syn
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		testStreamer(ctx, iterations, "storage", "default-json", streamer, NewProtoTmpData, logger)
+		testStreamer(ctx, iterations, "storage", "default-json", streamer, NewStorageTmpData, logger)
 	}()
 	return nil
 }
@@ -167,7 +167,7 @@ func testJsonStorageStreamerForParameters(ctx context.Context, iterations int, w
 				"workeCount=%d;workerQueue=%d;maxBatchDelay=%v",
 				workerCount, workerQueueSize, maxBatchDelay,
 			),
-			streamer, NewTmpData, logger,
+			streamer, NewStorageTmpData, logger,
 		)
 	}()
 	return nil

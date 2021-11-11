@@ -55,7 +55,7 @@ func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues bool, s
 	// This is a requirement given the streamer will batch its rows.
 	client, err := bigquery.NewClient(context.Background(), projectID)
 	if err != nil {
-		return nil, fmt.Errorf("BQ batch client: creation failed %w", err)
+		return nil, fmt.Errorf("BQ batch client: creation failed: %w", err)
 	}
 
 	return newClient(
@@ -104,18 +104,18 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 	loader.WriteDisposition = bqc.writeDisposition
 	job, err := loader.Run(ctx)
 	if err != nil {
-		return false, fmt.Errorf("BQ batch client: failed to run loader %w", err)
+		return false, fmt.Errorf("BQ batch client: failed to run loader: %w", err)
 	}
 	status, err := job.Wait(ctx)
 	if err != nil {
-		return false, fmt.Errorf("BQ batch client: job failed while waiting %w", err)
+		return false, fmt.Errorf("BQ batch client: job failed while waiting: %w", err)
 	}
 
 	if err := status.Err(); err != nil {
 		for _, statErr := range status.Errors {
 			bqc.logger.Errorf("BQ batch client: status error: %v", statErr)
 		}
-		return false, fmt.Errorf("BQ batch client: job returned an error status %w", err)
+		return false, fmt.Errorf("BQ batch client: job returned an error status: %w", err)
 	}
 
 	// We flush every time when we write data.
@@ -134,7 +134,7 @@ func (bqc *Client) Close() error {
 	// as this is an internal client used by Streamer only,
 	// which does flush prior to closing it :)
 	if err := bqc.client.Close(); err != nil {
-		return fmt.Errorf("BQ batch client: failed while closing %w", err)
+		return fmt.Errorf("BQ batch client: failed while closing: %w", err)
 	}
 	return nil
 }

@@ -50,7 +50,7 @@ var tmpDataBigQuerySchema = bigquery.Schema{
 			},
 			&bigquery.FieldSchema{
 				Name: "value",
-				Type: bigquery.BytesFieldType,
+				Type: bigquery.StringFieldType,
 			},
 		},
 	},
@@ -63,28 +63,39 @@ func NewTmpData(insertID string, name string, uuid int64, timestamp time.Time, t
 	for name, value := range parameters {
 		parameterSlice = append(parameterSlice, &tmpDataParameter{
 			Name:  name,
-			Value: []byte(value),
+			Value: value,
 		})
 	}
 	return &tmpData{
 		InsertID:   insertID,
 		Name:       name,
 		Uuid:       uuid,
-		Timestamp:  civil.DateTimeOf(timestamp),
+		Timestamp:  timestamp,
 		Truth:      truth,
 		Parameters: parameterSlice,
 	}
+}
+
+// NewStorageTmpData create a ValueSaver/JsonMarshal-based temporary data model,
+// implented using the dataGenerator syntax.
+// Meant for storage writes.
+func NewStorageTmpData(insertID string, name string, uuid int64, timestamp time.Time, truth bool, parameters map[string]string) interface{} {
+	data := NewTmpData(insertID, name, uuid, timestamp, truth, parameters)
+	t, _ := data.(*tmpData)
+	t.TimestampAsEpoch = true
+	return data
 }
 
 // tmpData is the data structure used by BigQuery and an implementation that is used
 // for testing the InsertAll (as ValueSaver) and Batch client (as Json). The Storage
 // API client is tested using the Protobuf definition instead.
 type tmpData struct {
-	InsertID string
+	InsertID         string
+	TimestampAsEpoch bool
 
 	Name       string
 	Uuid       int64
-	Timestamp  civil.DateTime
+	Timestamp  time.Time
 	Truth      bool
 	Parameters []*tmpDataParameter
 }
@@ -93,7 +104,7 @@ type tmpData struct {
 // Type that can be given as parameters for a tmpData record.
 type tmpDataParameter struct {
 	Name  string `json:"name"`
-	Value []byte `json:"value"`
+	Value string `json:"value"`
 }
 
 // Save implements bigquery.ValueSaver.Save
@@ -102,13 +113,13 @@ func (td *tmpData) Save() (row map[string]bigquery.Value, insertID string, err e
 	for _, param := range td.Parameters {
 		parameters = append(parameters, param.asBigqueryValue())
 	}
-	timestamp := td.Timestamp.String()
+	timestamp := civil.DateTimeOf(td.Timestamp).String()
 	return map[string]bigquery.Value{
-		"Name":       td.Name,
-		"Uuid":       td.Uuid,
-		"Timestamp":  timestamp[:len(timestamp)-3],
-		"Truth":      td.Truth,
-		"Parameters": parameters,
+		"name":       td.Name,
+		"uuid":       td.Uuid,
+		"timestamp":  timestamp[:len(timestamp)-3],
+		"truth":      td.Truth,
+		"parameters": parameters,
 	}, td.InsertID, nil
 }
 
@@ -121,12 +132,16 @@ func (tp *tmpDataParameter) asBigqueryValue() bigquery.Value {
 
 // Save implements json.JsonMarshaler.MarshalJSON
 func (td *tmpData) MarshalJSON() ([]byte, error) {
+	var timestamp interface{} = civil.DateTimeOf(td.Timestamp)
+	if td.TimestampAsEpoch {
+		timestamp = td.Timestamp.UnixNano() / 1000
+	}
 	// nolint: wrapcheck
 	return json.Marshal(map[string]interface{}{
-		"Name":       td.Name,
-		"Uuid":       td.Uuid,
-		"Timestamp":  td.Timestamp,
-		"Truth":      td.Truth,
-		"Parameters": td.Parameters,
+		"name":       td.Name,
+		"uuid":       td.Uuid,
+		"timestamp":  timestamp,
+		"truth":      td.Truth,
+		"parameters": td.Parameters,
 	})
 }

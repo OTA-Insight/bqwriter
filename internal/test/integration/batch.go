@@ -26,49 +26,41 @@ import (
 )
 
 type genReader struct {
-	ch       <-chan interface{}
-	ctx      context.Context
-	b        []byte
-	consumed bool
+	ch     <-chan interface{}
+	ctx    context.Context
+	b      []byte
+	logger Logger
 }
 
-func newGenReader(ctx context.Context, streamName, testName string, iterations int) *genReader {
+func newGenReader(ctx context.Context, streamName, testName string, iterations int, logger Logger) *genReader {
 	ch := newGenerator(ctx, streamName, testName, iterations, NewTmpData)
 	return &genReader{
-		ch:       ch,
-		ctx:      ctx,
-		b:        nil,
-		consumed: false,
+		ch:     ch,
+		ctx:    ctx,
+		b:      nil,
+		logger: logger,
 	}
 }
 
 // Read implements io.Reader.Read
 func (gr *genReader) Read(p []byte) (int, error) {
-	if len(p) == 0 {
-		return 0, nil
-	}
 	totalRead := 0
-	targetRead := len(p)
-	for {
+	for len(p) > 0 {
 		if len(gr.b) == 0 {
-			if gr.consumed {
-				p[0] = '\n'
-				p = p[1:]
-				totalRead += 1
-			}
 			select {
 			case <-gr.ctx.Done():
 				return totalRead, fmt.Errorf("genReader: read: %w", context.Canceled)
 			case data, ok := <-gr.ch:
 				if !ok {
-					return totalRead, fmt.Errorf("genReader: read: gen ch closed: %w", io.EOF)
+					return totalRead, io.EOF
 				}
 				b, err := json.Marshal(data)
 				if err != nil {
 					return totalRead, fmt.Errorf("genReader: read: failed to Json marshal gen data: %w", err)
 				}
 				gr.b = b
-				gr.consumed = true
+				gr.b = append(gr.b, '\n')
+				// gr.logger.Debugf("genReader: serialize data (json) to consume via reader: %v", data)
 			}
 		}
 
@@ -79,10 +71,12 @@ func (gr *genReader) Read(p []byte) (int, error) {
 		copy(p[:n], gr.b[:n])
 		gr.b, p = gr.b[n:], p[n:]
 		totalRead += n
-		if totalRead == targetRead {
-			return totalRead, nil
-		}
 	}
+	gr.logger.Debugf("genReader read bytes: %d", totalRead)
+	if totalRead == 0 && len(p) != 0 {
+		return 0, io.EOF
+	}
+	return totalRead, nil
 }
 
 func testBatchStreamerDefault(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
@@ -105,14 +99,14 @@ func testBatchStreamerDefault(ctx context.Context, iterations int, wg *sync.Wait
 		defer wg.Done()
 		startTime := time.Now()
 		defer func() {
-			logger.Debugf(
+			logger.Infof(
 				"testStreamer: streamer=batch;testName=default;iterations=%d: duration: %v",
 				iterations, time.Since(startTime),
 			)
 		}()
 		defer streamer.Close()
 
-		gr := newGenReader(ctx, "batch", "default", iterations)
+		gr := newGenReader(ctx, "batch", "default", iterations, logger)
 		err := streamer.Write(gr)
 		if err != nil {
 			logger.Errorf("failed to write gen I/O reader: %w", err)

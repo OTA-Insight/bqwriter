@@ -49,11 +49,12 @@ func init() {
 
 type streamerTest = func(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error
 
-func createTestsForStreamers(streamers string) []streamerTest {
+func createTestsForStreamers(logger Logger, streamers string) []streamerTest {
 	var tests []streamerTest
 	for _, name := range strings.Split(streamers, ",") {
 		switch strings.ToLower(name) {
 		case "insertall":
+			logger.Info("enable tests for streamer: insertAll")
 			tests = append(
 				tests,
 				testInsertAllStreamerDefault,
@@ -67,6 +68,7 @@ func createTestsForStreamers(streamers string) []streamerTest {
 				testInsertAllStreamerBatch50MultiWorkerQueue,
 			)
 		case "storage":
+			logger.Info("enable tests for streamer: storage")
 			tests = append(
 				tests,
 				testStorageStreamerDefault,
@@ -81,6 +83,7 @@ func createTestsForStreamers(streamers string) []streamerTest {
 				testJsonStorageStreamerNoBatchMultiWorkerQueue,
 			)
 		case "batch":
+			logger.Info("enable tests for streamer: batch")
 			tests = append(
 				tests,
 				testBatchStreamerDefault,
@@ -91,14 +94,14 @@ func createTestsForStreamers(streamers string) []streamerTest {
 }
 
 func main() {
-	// create tests
-	tests := createTestsForStreamers(*streamers)
-	if len(tests) == 0 {
-		tests = createTestsForStreamers("insertall,storage,batch")
-	}
-
 	logger := Logger{
 		ShowDebug: *debug,
+	}
+
+	// create tests
+	tests := createTestsForStreamers(logger, *streamers)
+	if len(tests) == 0 {
+		tests = createTestsForStreamers(logger, "insertall,storage,batch")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -110,27 +113,27 @@ func main() {
 	testCh := make(chan streamerTest)
 	resultCh := make(chan string)
 
-	// nolint: ifshort
 	iterations := *iterations
 	if iterations <= 0 {
 		iterations = defaultIterations
 	}
+	_ = iterations
 
-	// nolint: ifshort
 	bqProject := *bqProject
 	if bqProject == "" {
 		bqProject = defaultBQProject
 	}
-	// nolint: ifshort
+	_ = bqProject
 	bqDataset := *bqDataset
 	if bqDataset == "" {
 		bqDataset = defaultBQDataset
 	}
-	// nolint: ifshort
+	_ = bqDataset
 	bqTable := *bqTable
 	if bqTable == "" {
 		bqTable = defaultBQTable
 	}
+	_ = bqTable
 
 	// ceate workers to run tests
 	var workersWG sync.WaitGroup

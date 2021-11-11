@@ -24,9 +24,10 @@ func NewProtoTmpData(insertID string, name string, uuid int64, timestamp time.Ti
 	parameterSlice := make([]*TemporaryDataParameterProto2, 0, len(parameters))
 	for name, value := range parameters {
 		name := name
+		value := value
 		parameterSlice = append(parameterSlice, &TemporaryDataParameterProto2{
 			Name:  &name,
-			Value: []byte(value),
+			Value: &value,
 		})
 	}
 	epochMs := timestamp.UnixNano() / 1000
