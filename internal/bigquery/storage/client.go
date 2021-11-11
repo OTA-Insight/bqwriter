@@ -26,6 +26,8 @@ import (
 	"github.com/OTA-Insight/bqwriter/log"
 
 	"cloud.google.com/go/bigquery/storage/managedwriter"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -154,7 +156,7 @@ func (bqc *Client) checkAppendResultsAsync() {
 			select {
 			case <-result.Ready():
 				_, err := result.GetResult(context.Background())
-				if err != nil {
+				if err != nil && !isCanceledGRPCError(err) {
 					bqc.logger.Errorf("exit checkAppendResultsAsync: ready append resulted in error: %v", err)
 				}
 			default:
@@ -178,7 +180,7 @@ func (bqc *Client) checkAppendResultsAsync() {
 				select {
 				case <-result.Ready():
 					_, err := result.GetResult(context.Background())
-					if err != nil {
+					if err != nil && !isCanceledGRPCError(err) {
 						bqc.logger.Errorf("ready append resulted in error: %v", err)
 					}
 				default:
@@ -192,6 +194,14 @@ func (bqc *Client) checkAppendResultsAsync() {
 	}
 }
 
+func isCanceledGRPCError(err error) bool {
+	st, ok := status.FromError(err)
+	if !ok {
+		return false
+	}
+	return st.Code() == codes.Canceled
+}
+
 // Flush implements bigquery.Client::Flush
 func (bqc *Client) Flush() error {
 	// NOTE: flushing is only equired once we support non-default streams
@@ -201,12 +211,9 @@ func (bqc *Client) Flush() error {
 // Close implements b,fxigquery.Client::Close
 func (bqc *Client) Close() error {
 	defer func() {
-		defer func() {
-			if panicErr := recover(); panicErr != nil {
-				bqc.logger.Errorf("close BQ storage client: close internal append result ch: %v", panicErr)
-			}
-		}()
-		close(bqc.appendResultCh)
+		if panicErr := recover(); panicErr != nil {
+			bqc.logger.Errorf("close BQ storage client: close internal append result ch: %v", panicErr)
+		}
 	}()
 	if err := bqc.stream.Close(); err != nil && !errors.Is(err, io.EOF) {
 		bqc.logger.Errorf("close BQ storage client: close stream: %v", err)
@@ -214,6 +221,7 @@ func (bqc *Client) Close() error {
 	if err := bqc.client.Close(); err != nil {
 		return fmt.Errorf("close BQ storage client: close internal storage writer client: %w", err)
 	}
+	close(bqc.appendResultCh)
 	bqc.wg.Wait()
 	return nil
 }
