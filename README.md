@@ -65,6 +65,9 @@ The batch delay can also be disabled for it as no flushing is required for it an
 
 Please also note that errors are not handled gracefully in these examples as ot keep them small and narrow in scope.
 
+For extra reference you can also find some more examples, be it less pragmatic,
+in the [./internal/test/integration](./internal/test/integration) directory.
+
 ### Basic InsertAll Streamer
 
 ```go
@@ -454,6 +457,9 @@ For now however it is OpenCensus that is used.
 
 Note that this extra form of instrumentation is only applicable to a Streamer using the Storage API. The InsertAll-
 and Batch-driven Streamers do not provide any form of stats tracking.
+
+Please see also <https://github.com/googleapis/google-cloud-go/issues/5100#issuecomment-966461501> for more information
+on how you can hook up a built-in or your own system into the tracking system for any storage API driven streamer.
 
 ## Write Error handling
 
