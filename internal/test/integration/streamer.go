@@ -59,20 +59,23 @@ var (
 	randomBranchParam = []string{"main", "test", "staging", "dev"}
 )
 
-func testStreamer(ctx context.Context, iterations int, streamerName string, testName string, streamer *bqwriter.Streamer, gen dataGenerator, logger Logger) {
+func testStreamer(ctx context.Context, iterations int, streamerName string, testName string, streamer *bqwriter.Streamer, gen dataGenerator, logger Logger) (err error) {
 	startTime := time.Now()
 	defer func() {
 		logger.Infof(
-			"testStreamer: streamer=%s;testName=%s;iterations=%d: duration: %v",
-			streamerName, testName, iterations, time.Since(startTime),
+			"testStreamer: streamer=%s;testName=%s;iterations=%d: duration: %v (err: %v)",
+			streamerName, testName, iterations, time.Since(startTime), err,
 		)
 	}()
 	defer streamer.Close()
 
 	for data := range newGenerator(ctx, streamerName, testName, iterations, gen) {
-		err := streamer.Write(data)
+		err = streamer.Write(data)
 		if err != nil {
-			logger.Errorf("streamer write failed for data %v: %v", data, err)
+			err = fmt.Errorf("streamer write failed for data %v: %w", data, err)
+			return err
 		}
 	}
+
+	return nil
 }

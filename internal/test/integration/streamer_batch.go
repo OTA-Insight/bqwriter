@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"sync"
 	"time"
 
 	"github.com/OTA-Insight/bqwriter"
@@ -79,7 +78,7 @@ func (gr *genReader) Read(p []byte) (int, error) {
 	return totalRead, nil
 }
 
-func testBatchStreamerDefault(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error {
+func testBatchStreamerDefault(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
 	streamer, err := bqwriter.NewStreamer(
 		context.Background(),
 		projectID,
@@ -94,23 +93,19 @@ func testBatchStreamerDefault(ctx context.Context, iterations int, wg *sync.Wait
 		return fmt.Errorf("failed to create default Batch streamer: %w", err)
 	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		startTime := time.Now()
-		defer func() {
-			logger.Infof(
-				"testStreamer: streamer=batch;testName=default;iterations=%d: duration: %v",
-				iterations, time.Since(startTime),
-			)
-		}()
-		defer streamer.Close()
-
-		gr := newGenReader(ctx, "batch", "default", iterations, logger)
-		err := streamer.Write(gr)
-		if err != nil {
-			logger.Errorf("failed to write gen I/O reader: %w", err)
-		}
+	startTime := time.Now()
+	defer func() {
+		logger.Infof(
+			"testStreamer: streamer=batch;testName=default;iterations=%d: duration: %v (err: %v)",
+			iterations, time.Since(startTime), err,
+		)
 	}()
+	defer streamer.Close()
+
+	gr := newGenReader(ctx, "batch", "default", iterations, logger)
+	err = streamer.Write(gr)
+	if err != nil {
+		return fmt.Errorf("failed to write gen I/O reader: %w", err)
+	}
 	return nil
 }

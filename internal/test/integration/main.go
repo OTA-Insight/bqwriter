@@ -47,7 +47,7 @@ func init() {
 	flag.Parse()
 }
 
-type streamerTest = func(ctx context.Context, iterations int, wg *sync.WaitGroup, logger Logger, projectID, datasetID, tableID string) error
+type streamerTest = func(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error
 
 func createTestsForStreamers(logger Logger, streamers string) []streamerTest {
 	var tests []streamerTest
@@ -150,7 +150,6 @@ func main() {
 		workersWG.Add(1)
 		go func() {
 			defer workersWG.Done()
-			var wg sync.WaitGroup
 			for {
 				select {
 				case <-ctx.Done():
@@ -163,7 +162,7 @@ func main() {
 					testCtx, _ := context.WithTimeout(ctx, time.Second*10)
 					err := test(
 						testCtx,
-						iterations, &wg, logger,
+						iterations, logger,
 						bqProject, bqDataset, bqTable,
 					)
 					if err != nil {
@@ -173,8 +172,6 @@ func main() {
 						case resultCh <- fmt.Sprintf("test failed with error: %v", err):
 						}
 					}
-					// wait until test is complete
-					wg.Wait()
 					select {
 					case <-ctx.Done():
 						return
