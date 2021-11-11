@@ -12,6 +12,11 @@ Documentation improvements:
     as integration dev-triggered tests rather than a true benchmark;
   - And the first to allow more flexibility and differentiation in how we test what streamer configuration;
 
+Bug Fixes:
+
+- Storage Streamer Client couldn't be closed without hanging, now it can be closed;
+- improve & clean up integration tets;
+
 work in progress
 
 ## [v0.5.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.1...v0.5.0) (2021-11-10)
