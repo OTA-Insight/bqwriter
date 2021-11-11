@@ -33,10 +33,12 @@ func (stdl Logger) Debug(args ...interface{}) {
 	}
 }
 
+// Infof logs formatted info statements to the STDERR
 func (stdl Logger) Infof(template string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, "[INFO] "+template+"\n", args...)
 }
 
+// Info logs info statements to the STDERR
 func (stdl Logger) Info(args ...interface{}) {
 	args = append([]interface{}{"[INFO]"}, args...)
 	fmt.Fprintln(os.Stderr, args...)
