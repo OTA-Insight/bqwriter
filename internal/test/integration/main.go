@@ -35,7 +35,7 @@ const (
 var (
 	iterations = flag.Int("iterations", defaultIterations, "how many values to write to each of the different streamer tests")
 	workers    = flag.Int("workers", runtime.NumCPU(), "how many workers to use to run tests in parallel")
-	streamers  = flag.String("streamers", "", "csv of streamers to test, one or multiple of following options: insertall, storage, batch")
+	streamers  = flag.String("streamers", "", "csv of streamers to test, one or multiple of following options: insertall, storage, storage-json, batch")
 	debug      = flag.Bool("debug", false, "enable to show debug logs")
 
 	bqProject = flag.String("project", defaultBQProject, "BigQuery project to write data to")
@@ -72,11 +72,16 @@ func createTestsForStreamers(logger Logger, streamers string) []streamerTest {
 			tests = append(
 				tests,
 				testStorageStreamerDefault,
-				testStorageStreamerDefaultJson,
 				testStorageStreamerNoBatchSingleWorkerNoQueue,
 				testStorageStreamerNoBatchSingleWorkerWithQueue,
 				testStorageStreamerNoBatchMultiWorkerNoQueue,
 				testStorageStreamerNoBatchMultiWorkerQueue,
+			)
+		case "storage-json":
+			logger.Info("enable tests for streamer: storage-json")
+			tests = append(
+				tests,
+				testStorageStreamerDefaultJson,
 				testJsonStorageStreamerNoBatchSingleWorkerNoQueue,
 				testJsonStorageStreamerNoBatchSingleWorkerWithQueue,
 				testJsonStorageStreamerNoBatchMultiWorkerNoQueue,
