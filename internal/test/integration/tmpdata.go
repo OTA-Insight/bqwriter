@@ -33,7 +33,7 @@ var tmpDataBigQuerySchema = bigquery.Schema{
 	},
 	&bigquery.FieldSchema{
 		Name: "timestamp",
-		Type: bigquery.DateTimeFieldType,
+		Type: bigquery.TimestampFieldType,
 	},
 	&bigquery.FieldSchema{
 		Name: "truth",

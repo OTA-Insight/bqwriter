@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"cloud.google.com/go/bigquery/storage/managedwriter/adapt"
 	"github.com/OTA-Insight/bqwriter/internal"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/batch"
@@ -30,6 +31,7 @@ import (
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
 	"github.com/OTA-Insight/bqwriter/log"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // Streamer is a simple BQ stream-writer, allowing you
@@ -62,29 +64,44 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 			}
 
 			if storageCfg != nil {
-				if storageCfg.ProtobufDescriptor != nil {
-					client, err := storage.NewClient(
-						projectID, dataSetID, tableID,
-						encoding.NewProtobufEncoder(), storageCfg.ProtobufDescriptor,
-						logger,
-					)
+				protobufDescriptor := storageCfg.ProtobufDescriptor
+				var encoder encoding.Encoder
+				if protobufDescriptor != nil {
+					encoder = encoding.NewProtobufEncoder()
+				} else {
+					// if no protobuf descriptor is given we can assume, thanks to the stream config,
+					// that the big query schema is given if no protobuf scriptor is given
+					var err error
+					encoder, err = encoding.NewSchemaEncoder(*storageCfg.BigQuerySchema)
 					if err != nil {
-						return nil, fmt.Errorf("BigQuery: NewStreamer: New Protobuf Message Storage client: %w", err)
+						return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: create schema encoder: %w", err)
 					}
-					return client, nil
-				}
+					convertedSchema, err := adapt.BQSchemaToStorageTableSchema(*storageCfg.BigQuerySchema)
+					if err != nil {
+						return nil, fmt.Errorf("BigQuery: NewStreamer: adapt.BQSchemaToStorageTableSchema: %w", err)
+					}
 
-				encoder, err := encoding.NewSchemaEncoder(*storageCfg.BigQuerySchema)
-				if err != nil {
-					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: create schema encoder: %w", err)
+					descriptor, err := adapt.StorageSchemaToProto2Descriptor(convertedSchema, "root")
+					if err != nil {
+						return nil, fmt.Errorf("BigQuery: NewStreamer: adapt.StorageSchemaToDescriptor: %w", err)
+					}
+					messageDescriptor, ok := descriptor.(protoreflect.MessageDescriptor)
+					if !ok {
+						// nolint: goerr113
+						return nil, errors.New("BigQuery: NewStreamer: adapted descriptor is not a message descriptor")
+					}
+					protobufDescriptor, err = adapt.NormalizeDescriptor(messageDescriptor)
+					if err != nil {
+						return nil, fmt.Errorf("BigQuery: NewStreamer: adapt.NormalizeDescriptor: %w", err)
+					}
 				}
 				client, err := storage.NewClient(
 					projectID, dataSetID, tableID,
-					encoder, nil,
+					encoder, protobufDescriptor,
 					logger,
 				)
 				if err != nil {
-					return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: %w", err)
+					return nil, fmt.Errorf("BigQuery: NewStreamer: New Storage client: %w", err)
 				}
 				return client, nil
 			}

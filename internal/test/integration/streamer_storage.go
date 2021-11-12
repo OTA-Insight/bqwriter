@@ -68,7 +68,7 @@ func testStorageStreamerDefaultJson(ctx context.Context, iterations int, logger 
 	if err != nil {
 		return fmt.Errorf("failed to create BQ schema-based Storage streamer: %w", err)
 	}
-	return testStreamer(ctx, iterations, "storage", "default-json", streamer, NewStorageTmpData, logger)
+	return testStreamer(ctx, iterations, "storage-json", "default-json", streamer, NewStorageTmpData, logger)
 }
 
 func testStorageStreamerForParameters(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string, workerCount int, workerQueueSize int, maxBatchDelay time.Duration) error {

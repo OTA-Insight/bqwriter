@@ -71,10 +71,8 @@ func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, d
 	if encoder == nil {
 		return nil, fmt.Errorf("bq storage client creation: validate encoder: %w: missing", internal.ErrInvalidParam)
 	}
-
-	// only debug log that a descriptor is not given, as it is not seen as a critical error
 	if dp == nil {
-		logger.Debug("no Protobuf descriptor given as part of the creation of a new BQ Storage Client")
+		return nil, fmt.Errorf("bq storage client creation: validate dp (DescriptorProto): %w: missing", internal.ErrInvalidParam)
 	}
 
 	// NOTE: we are using the background Context,
@@ -156,8 +154,12 @@ func (bqc *Client) checkAppendResultsAsync() {
 			select {
 			case <-result.Ready():
 				_, err := result.GetResult(context.Background())
-				if err != nil && !isCanceledGRPCError(err) {
-					bqc.logger.Errorf("exit checkAppendResultsAsync: ready append resulted in error: %v", err)
+				if err != nil {
+					if isCanceledGRPCError(err) {
+						bqc.logger.Debugf("exit checkAppendResultsAsync: ready append resulted in error: %v", err)
+					} else {
+						bqc.logger.Errorf("exit checkAppendResultsAsync: ready append resulted in error: %v", err)
+					}
 				}
 			default:
 				bqc.logger.Debug("append result not yet ready: checkAppendResultsAsync exited anyway")
@@ -180,8 +182,12 @@ func (bqc *Client) checkAppendResultsAsync() {
 				select {
 				case <-result.Ready():
 					_, err := result.GetResult(context.Background())
-					if err != nil && !isCanceledGRPCError(err) {
-						bqc.logger.Errorf("ready append resulted in error: %v", err)
+					if err != nil {
+						if isCanceledGRPCError(err) {
+							bqc.logger.Debugf("ready append resulted in error: %v", err)
+						} else {
+							bqc.logger.Errorf("ready append resulted in error: %v", err)
+						}
 					}
 				default:
 					// keep result until next time
@@ -199,7 +205,8 @@ func isCanceledGRPCError(err error) bool {
 	if !ok {
 		return false
 	}
-	return st.Code() == codes.Canceled
+	code := st.Code()
+	return code == codes.Canceled || code == codes.Unavailable
 }
 
 // Flush implements bigquery.Client::Flush
