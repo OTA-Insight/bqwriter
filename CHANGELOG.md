@@ -19,7 +19,7 @@ Bug Fixes:
 - Storage Streamer Client can now be used with BigQuery.Schema, previously it would result in a schema name error;
 - Storage Streamer Client now demoted Canceled/Unavailable code errors for append rows to debug logs: as these are related
   to underlying connections being reset or a similar kind of EOF event;
-- improve & clean up integration tets;
+- improve & clean up integration tests;
 
 ## [v0.5.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.1...v0.5.0) (2021-11-10)
 
