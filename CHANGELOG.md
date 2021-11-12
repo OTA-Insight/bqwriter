@@ -1,6 +1,6 @@
 # Changes
 
-## [v0.5.2](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.2...v0.5.1) (2021-11-12 ETA)
+## [v0.5.2](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.2...v0.5.1) (2021-11-12)
 
 Documentation improvements:
 
@@ -11,13 +11,15 @@ Documentation improvements:
   - The latter because it was from the beginning used
     as integration dev-triggered tests rather than a true benchmark;
   - And the first to allow more flexibility and differentiation in how we test what streamer configuration;
+- Add developer instructions to the README;
 
 Bug Fixes:
 
 - Storage Streamer Client couldn't be closed without hanging, now it can be closed;
+- Storage Streamer Client can now be used with BigQuery.Schema, previously it would result in a schema name error;
+- Storage Streamer Client now demoted Canceled/Unavailable code errors for append rows to debug logs: as these are related
+  to underlying connections being reset or a similar kind of EOF event;
 - improve & clean up integration tets;
-
-work in progress
 
 ## [v0.5.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.1...v0.5.0) (2021-11-10)
 

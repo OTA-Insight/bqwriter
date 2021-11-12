@@ -493,3 +493,55 @@ Contributions are welcome. Please, see the [CONTRIBUTING](/CONTRIBUTING.md) docu
 Please note that this project is released with a Contributor Code of Conduct.
 By participating in this project you agree to abide by its terms.
 See [Contributor Code of Conduct](/CONTRIBUTING.md#contributor-code-of-conduct) for more information.
+
+## Developer Instructions
+
+As a developer you need to agree to the
+[Contributor Code of Conduct](/CONTRIBUTING.md#contributor-code-of-conduct) for more information.
+See [the previous Contributing section](#contributing) for more info in regards of contributing to this project.
+In this section we'll also assume that you've read & understood the [Install](#install) and [Examples](#examples) sections.
+
+Please take your time and complete the forms with sufficient details when filing issues and proposals. Pull requests (PRs) should only be created once a related issue/proposal has been created and agreed upon. Also take your time and complete the PR description with sufficient detail when you're ready to create a PR.
+
+### Tests
+
+Using [GitHub actions](./.github/workflows/go.yml) this codebase is being tested automatically for each commit/PR.
+- `$ go test -v ./...`:
+  - run against the Min and Max Go versions
+  - all tests are expected to pass
+- `$ golangci-lint run`:
+  - run against latest Go version only
+  - is expected to generate no warnings or errors of any kind
+
+For each contribution that you do you'll have to make sure that all these tests pass.
+Please do not modify any existing tests unless required because some kind of breaking change. If you do have to modify (or delete) existing tests than please document this in full detail with proper motivation as part of your PR description. Ensure your added and modified code is also sufficiently tested and covered.
+
+Next to this, the maintainers of this repository (see [CODEOWNERS](CODEOWNERS)) also run [integration tests](./internal/test/integration) against a real production-like BigQuery table within the actual Google Cloud infrastructure. These test the streamer for all implementations: `insertAll`, `storage`, `storage-json` (a regular `storage` client but using a bigQuery.Schema as to be able to insert JsonMarshalled data) and `batch`.
+
+You can run these tests yourself as well using the following internal cmd tool:
+
+```batch
+$ go run ./internal/test/integration --help
+Usage of ./internal/test/integration/tmp/exe:
+  -dataset string
+        BigQuery dataset to write data to (default "benchmarks_bqwriter")
+  -debug
+        enable to show debug logs
+  -iterations int
+        how many values to write to each of the different streamer tests (default 100)
+  -project string
+        BigQuery project to write data to (default "oi-bigquery")
+  -streamers string
+        csv of streamers to test, one or multiple of following options: insertall, storage, storage-json, batch
+  -table string
+        BigQuery table to write data to (default "tmp")
+  -workers int
+        how many workers to use to run tests in parallel (default 12)
+```
+
+Most likely you'll need to pass the `--project`, `--dataset` and `--table` flag to use 
+a BigQuery table for which you have sufficient permissions and that is used
+only for temporary testing purposes such as these.
+
+Running these tests yourself is not required as part of a contribution,
+but it can be run by you in case you are interested in doing so for whatever reason.
