@@ -104,7 +104,7 @@ func main() {
 	// create tests
 	tests := createTestsForStreamers(logger, *streamers)
 	if len(tests) == 0 {
-		tests = createTestsForStreamers(logger, "insertall,storage,batch")
+		tests = createTestsForStreamers(logger, "insertall,storage,storage-json,batch")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
