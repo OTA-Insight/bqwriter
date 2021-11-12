@@ -1,6 +1,6 @@
 # Changes
 
-## [v0.5.2](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.2...v0.5.1) (2021-11-12)
+## [v0.6.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.0...v0.5.1) (2021-11-12)
 
 Documentation improvements:
 
