@@ -59,7 +59,7 @@ var (
 	randomBranchParam = []string{"main", "test", "staging", "dev"}
 )
 
-func testStreamer(ctx context.Context, iterations int, streamerName string, testName string, streamer *bqwriter.Streamer, gen dataGenerator, logger Logger) (err error) {
+func testStreamer(ctx context.Context, iterations int, streamerName string, testName string, streamer *bqwriter.Streamer, gen dataGenerator, logger *Logger) (err error) {
 	startTime := time.Now()
 	defer func() {
 		logger.Infof(

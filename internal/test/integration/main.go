@@ -47,9 +47,9 @@ func init() {
 	flag.Parse()
 }
 
-type streamerTest = func(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error
+type streamerTest = func(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error
 
-func createTestsForStreamers(logger Logger, streamers string) []streamerTest {
+func createTestsForStreamers(logger *Logger, streamers string) []streamerTest {
 	var tests []streamerTest
 	for _, name := range strings.Split(streamers, ",") {
 		switch strings.ToLower(name) {
@@ -99,9 +99,7 @@ func createTestsForStreamers(logger Logger, streamers string) []streamerTest {
 }
 
 func main() {
-	logger := Logger{
-		ShowDebug: *debug,
-	}
+	logger := NewLogger(*debug)
 
 	// create tests
 	tests := createTestsForStreamers(logger, *streamers)

@@ -25,39 +25,46 @@ type Logger struct {
 	ShowDebug bool
 }
 
+// NewLogger creates a new Logger
+func NewLogger(showDebug bool) *Logger {
+	return &Logger{
+		ShowDebug: showDebug,
+	}
+}
+
 // Debug implements Logger::Debug
-func (stdl Logger) Debug(args ...interface{}) {
+func (stdl *Logger) Debug(args ...interface{}) {
 	if stdl.ShowDebug {
 		args = append([]interface{}{"[DEBUG]"}, args...)
 		fmt.Fprintln(os.Stderr, args...)
 	}
 }
 
-// Infof logs formatted info statements to the STDERR
-func (stdl Logger) Infof(template string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "[INFO] "+template+"\n", args...)
-}
-
-// Info logs info statements to the STDERR
-func (stdl Logger) Info(args ...interface{}) {
-	args = append([]interface{}{"[INFO]"}, args...)
-	fmt.Fprintln(os.Stderr, args...)
-}
-
 // Debugf implements Logger::Debugf
-func (stdl Logger) Debugf(template string, args ...interface{}) {
+func (stdl *Logger) Debugf(template string, args ...interface{}) {
 	if stdl.ShowDebug {
 		fmt.Fprintf(os.Stderr, "[DEBUG] "+template+"\n", args...)
 	}
 }
 
+// Info logs info statements to the STDERR
+func (stdl *Logger) Info(args ...interface{}) {
+	args = append([]interface{}{"[INFO]"}, args...)
+	fmt.Fprintln(os.Stderr, args...)
+}
+
+// Infof logs formatted info statements to the STDERR
+func (stdl *Logger) Infof(template string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, "[INFO] "+template+"\n", args...)
+}
+
 // Error implements Logger::Error
-func (stdl Logger) Error(args ...interface{}) {
+func (stdl *Logger) Error(args ...interface{}) {
 	args = append([]interface{}{"[ERROR]"}, args...)
 	fmt.Fprintln(os.Stderr, args...)
 }
 
 // Errorf implements Logger::Errorf
-func (stdl Logger) Errorf(template string, args ...interface{}) {
+func (stdl *Logger) Errorf(template string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, "[ERROR] "+template+"\n", args...)
 }

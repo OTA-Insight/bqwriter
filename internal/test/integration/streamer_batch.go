@@ -28,10 +28,10 @@ type genReader struct {
 	ch     <-chan interface{}
 	ctx    context.Context
 	b      []byte
-	logger Logger
+	logger *Logger
 }
 
-func newGenReader(ctx context.Context, streamName, testName string, iterations int, logger Logger) *genReader {
+func newGenReader(ctx context.Context, streamName, testName string, iterations int, logger *Logger) *genReader {
 	ch := newGenerator(ctx, streamName, testName, iterations, NewTmpData)
 	return &genReader{
 		ch:     ch,
@@ -78,7 +78,7 @@ func (gr *genReader) Read(p []byte) (int, error) {
 	return totalRead, nil
 }
 
-func testBatchStreamerDefault(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
+func testBatchStreamerDefault(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error {
 	streamer, err := bqwriter.NewStreamer(
 		context.Background(),
 		projectID,

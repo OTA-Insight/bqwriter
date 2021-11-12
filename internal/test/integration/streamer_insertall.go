@@ -22,7 +22,7 @@ import (
 	"github.com/OTA-Insight/bqwriter"
 )
 
-func testInsertAllStreamerDefault(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
+func testInsertAllStreamerDefault(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error {
 	streamer, err := bqwriter.NewStreamer(
 		context.Background(),
 		projectID,
@@ -38,7 +38,7 @@ func testInsertAllStreamerDefault(ctx context.Context, iterations int, logger Lo
 	return testStreamer(ctx, iterations, "insertAll", "default", streamer, NewTmpData, logger)
 }
 
-func testInsertAllStreamerForParameters(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string, workerCount int, workerQueueSize int, maxBatchDelay time.Duration, batchSize int) error {
+func testInsertAllStreamerForParameters(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string, workerCount int, workerQueueSize int, maxBatchDelay time.Duration, batchSize int) error {
 	streamer, err := bqwriter.NewStreamer(
 		context.Background(),
 		projectID,
@@ -66,34 +66,34 @@ func testInsertAllStreamerForParameters(ctx context.Context, iterations int, log
 		streamer, NewTmpData, logger)
 }
 
-func testInsertAllStreamerNoBatchSingleWorkerNoQueue(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
+func testInsertAllStreamerNoBatchSingleWorkerNoQueue(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error {
 	return testInsertAllStreamerForParameters(ctx, iterations, logger, projectID, datasetID, tableID, 1, 1, 1, 1)
 }
 
-func testInsertAllStreamerNoBatchSingleWorkerWithQueue(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
+func testInsertAllStreamerNoBatchSingleWorkerWithQueue(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error {
 	return testInsertAllStreamerForParameters(ctx, iterations, logger, projectID, datasetID, tableID, 1, 8, 1, 1)
 }
 
-func testkInsertAllStreamerNoBatchMultiWorkerNoQueue(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
+func testkInsertAllStreamerNoBatchMultiWorkerNoQueue(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error {
 	return testInsertAllStreamerForParameters(ctx, iterations, logger, projectID, datasetID, tableID, 4, 1, 1, 1)
 }
 
-func testInsertAllStreamerNoBatchMultiWorkerQueue(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
+func testInsertAllStreamerNoBatchMultiWorkerQueue(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error {
 	return testInsertAllStreamerForParameters(ctx, iterations, logger, projectID, datasetID, tableID, 4, 8, 1, 1)
 }
 
-func testInsertAllStreamerBatch50SingleWorkerNoQueue(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
+func testInsertAllStreamerBatch50SingleWorkerNoQueue(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error {
 	return testInsertAllStreamerForParameters(ctx, iterations, logger, projectID, datasetID, tableID, 1, 1, time.Second*5, 50)
 }
 
-func testInsertAllStreamerBatch50SingleWorkerWithQueue(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
+func testInsertAllStreamerBatch50SingleWorkerWithQueue(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error {
 	return testInsertAllStreamerForParameters(ctx, iterations, logger, projectID, datasetID, tableID, 1, 8, time.Second*5, 50)
 }
 
-func testInsertAllStreamerBatch50MultiWorkerNoQueue(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
+func testInsertAllStreamerBatch50MultiWorkerNoQueue(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error {
 	return testInsertAllStreamerForParameters(ctx, iterations, logger, projectID, datasetID, tableID, 4, 1, time.Second*5, 50)
 }
 
-func testInsertAllStreamerBatch50MultiWorkerQueue(ctx context.Context, iterations int, logger Logger, projectID, datasetID, tableID string) error {
+func testInsertAllStreamerBatch50MultiWorkerQueue(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error {
 	return testInsertAllStreamerForParameters(ctx, iterations, logger, projectID, datasetID, tableID, 4, 8, time.Second*5, 50)
 }
