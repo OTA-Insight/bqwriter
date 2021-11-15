@@ -545,3 +545,11 @@ only for temporary testing purposes such as these.
 
 Running these tests yourself is not required as part of a contribution,
 but it can be run by you in case you are interested in doing so for whatever reason.
+
+## FAQ
+
+> My insertAll streamer seems to insert 1 row per request instead of batching, how is this possible?
+
+Make sure your configuration matches the needs of your bandwidth.
+Do not use more workers than you need for example (`WorkerCount`). Also make
+sure the `MaxBatchDelay` and `BatchSize` values are configured appropriately.
