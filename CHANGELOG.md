@@ -11,6 +11,7 @@ Bug Fixes:
   as can be read on https://github.com/googleapis/google-cloud-go/issues/3792,
   but we do want to support these as retryable as that is usually what you want to do;
   - Permanent issues will fail after ~32s and will non the less end up in the user's logs;
+- Reset flush ticket in Streamer always, even in case of a put-flush error, this is fine by convention;
 
 Documentation:
 
