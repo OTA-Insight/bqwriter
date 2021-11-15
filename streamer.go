@@ -232,6 +232,7 @@ func (s *Streamer) doWork(client bigquery.Client, maxBatchDelay time.Duration) {
 	}()
 
 	batchDelayTicker := time.NewTicker(maxBatchDelay)
+	defer batchDelayTicker.Stop()
 
 	for {
 		select {
