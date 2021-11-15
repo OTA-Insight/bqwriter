@@ -20,6 +20,8 @@ Documentation:
 Other changes:
 
 - Change DefaultMaxBatchDelay from 5s to 10s;
+- update `golang.org/x/net`, `golang.org/x/sys` and `google.golang.org/genproto`
+  to latest version (no semver);
 
 ## [v0.6.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.0...v0.5.1) (2021-11-12)
 
