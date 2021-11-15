@@ -20,6 +20,7 @@ import (
 	"time"
 
 	gax "github.com/googleapis/gax-go/v2"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -97,7 +98,7 @@ func (r *Retryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
 		// no retry is possible any longer either
 		return 0, false
 	}
-	if r.retries >= r.maxRetries {
+	if r.maxRetries >= 0 && r.retries >= r.maxRetries {
 		// no longer need to retry,
 		// already exhausted our retry attempts
 		return 0, false
@@ -135,4 +136,12 @@ func GRPCRetryErrorFilter(err error) bool {
 	default:
 		return false
 	}
+}
+
+func HttpInternalErrorFilter(err error) bool {
+	var googleApiErr *googleapi.Error
+	if !errors.As(err, &googleApiErr) {
+		return false
+	}
+	return googleApiErr.Code/100 == 5
 }

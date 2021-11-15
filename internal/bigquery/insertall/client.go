@@ -21,6 +21,7 @@ import (
 	"cloud.google.com/go/bigquery"
 	"github.com/OTA-Insight/bqwriter/constant"
 	"github.com/OTA-Insight/bqwriter/internal"
+	internalBQ "github.com/OTA-Insight/bqwriter/internal/bigquery"
 	"github.com/OTA-Insight/bqwriter/log"
 )
 
@@ -172,9 +173,26 @@ func (bqc *Client) Flush() (err error) {
 	// retry logic is to be implemented by the actual BQ (inserAll) client,
 	// it certainly is the case for the actual one used
 	//
-	// background ctx is used, as we always want to flush unwritten rows, even if parent ctx is done
-	ctx := context.Background()
-	if err := bqc.client.Put(ctx, bqc.rows); err != nil {
+	// background ctx is used, as we always want to flush unwritten rows, even if parent ctx is done,
+	// we do retry on top of the default BigQuery logic
+	// (as defined in https://github.com/googleapis/google-cloud-go/blob/b288668e0b6a66df92ca9115f759bc0670e6e822/bigquery/bigquery.go#L172-L239)
+	// for the only reason that they choose to not retry 5xx internal errors as these indicate tmp issues with BigQuery that could
+	// be considered as a bug in BigQuery layer instead. In the issue https://github.com/googleapis/google-cloud-go/issues/3792
+	// someomeone reported the same issue from which it is clear that this won't be supported by google apis out of the box,
+	// as such we support it here
+	retryer := internalBQ.NewRetryer(
+		context.Background(),
+		-1,
+		constant.DefaultInitialRetryDelay,
+		constant.DefaultMaxRetryDeadlineOffset,
+		constant.DefaultRetryDelayMultiplier,
+		internalBQ.HttpInternalErrorFilter,
+	)
+	err = retryer.RetryOp(func(ctx context.Context) error {
+		// nolint: wrapcheck
+		return bqc.client.Put(ctx, bqc.rows)
+	})
+	if err != nil {
 		return fmt.Errorf("thick insertAll BQ client: put batched rows (count=%d): %w", len(bqc.rows), err)
 	}
 	return nil

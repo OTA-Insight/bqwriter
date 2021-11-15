@@ -17,6 +17,7 @@ package insertall
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"reflect"
 	"sort"
 	"testing"
@@ -26,6 +27,7 @@ import (
 	"github.com/OTA-Insight/bqwriter/internal"
 	"github.com/OTA-Insight/bqwriter/internal/test"
 	"github.com/OTA-Insight/bqwriter/log"
+	"google.golang.org/api/googleapi"
 )
 
 // stubClient is an in-memory stub client for the bqInsertAllClient interface,
@@ -143,6 +145,22 @@ func TestBQInsertAllThickClientBatchExhaustBatch(t *testing.T) {
 	err = client.Flush()
 	test.AssertNoError(t, err)
 	stubClient.AssertStringSlice(t, []string{"hello", "world", "!"})
+}
+
+func TestBQInsertAllRetryInternalErrors(t *testing.T) {
+	stubClient, client := newTestClient(t, &TestClientConfig{
+		BatchSize: 1,
+	})
+	defer stubClient.Close()
+
+	stubClient.AddNextError(&googleapi.Error{
+		Code: http.StatusInternalServerError,
+	})
+
+	flushed, err := client.Put("hello")
+	test.AssertNoError(t, err)
+	test.AssertTrue(t, flushed)
+	stubClient.AssertStringSlice(t, []string{"hello"})
 }
 
 func TestNewBQInsertAllThickClientWithNilClient(t *testing.T) {

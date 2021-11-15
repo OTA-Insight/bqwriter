@@ -17,6 +17,7 @@ package bigquery
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -24,6 +25,7 @@ import (
 	"github.com/OTA-Insight/bqwriter/constant"
 	"github.com/OTA-Insight/bqwriter/internal/test"
 
+	"google.golang.org/api/googleapi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -183,4 +185,30 @@ func TestBQGRPCRetryErrorFilterFalse(t *testing.T) {
 	// correct error, but wrong code
 	err := status.New(codes.Aborted, "test error").Err()
 	test.AssertFalse(t, GRPCRetryErrorFilter(err))
+}
+
+func TestBQHttpInternalErrorRetryErrorFilterTrue(t *testing.T) {
+	testCases := []int{
+		http.StatusInternalServerError,
+		http.StatusServiceUnavailable,
+		http.StatusGatewayTimeout,
+	}
+	for _, testCase := range testCases {
+		err := &googleapi.Error{
+			Code: testCase,
+		}
+		test.AssertTrue(t, HttpInternalErrorFilter(err))
+	}
+}
+
+func TestBQHttpInternalErrorRetryErrorFilterFalse(t *testing.T) {
+	// nil error is not an accepted error
+	test.AssertFalse(t, HttpInternalErrorFilter(nil))
+	// custom error is not an accepted error
+	test.AssertFalse(t, HttpInternalErrorFilter(fmt.Errorf("todo: %w", test.ErrStatic)))
+	// correct error, but wrong code
+	err := &googleapi.Error{
+		Code: http.StatusForbidden,
+	}
+	test.AssertFalse(t, HttpInternalErrorFilter(err))
 }

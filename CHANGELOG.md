@@ -6,6 +6,11 @@ Bug Fixes:
 
 - Remove duplicate deadline for InsertAll client, this setting is no longer required as anyhow the
   insertAll inner BQ client has a max deadline which cannot be configured, which we can use as-is;
+- Add Retry logic to InsertAll client as to support Retrying tmp/internal BQ errors,
+  these are by design not supported by BigQuery google Go API itself,
+  as can be read on https://github.com/googleapis/google-cloud-go/issues/3792,
+  but we do want to support these as retryable as that is usually what you want to do;
+  - Permanent issues will fail after ~32s and will non the less end up in the user's logs;
 
 Documentation:
 
