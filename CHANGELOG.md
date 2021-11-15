@@ -1,6 +1,6 @@
 # Changes
 
-## [v0.6.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.1...v0.6.0) (2021-11-15 ETA)
+## [v0.6.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.1...v0.6.0) (2021-11-15)
 
 Bug Fixes:
 
@@ -16,7 +16,9 @@ Documentation:
 
 - Add a CONTRIBUTORS file to list anyone who contributed to this project, and is not listed as an AUTHOR;
 
-work in progress
+Other changes:
+
+- Change DefaultMaxBatchDelay from 5s to 10s;
 
 ## [v0.6.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.0...v0.5.1) (2021-11-12)
 
