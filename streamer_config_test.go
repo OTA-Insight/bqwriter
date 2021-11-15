@@ -50,8 +50,7 @@ var (
 		MaxBatchDelay:   constant.DefaultMaxBatchDelay,
 		Logger:          internal.Logger{},
 		InsertAllClient: &InsertAllClientConfig{
-			BatchSize:              constant.DefaultBatchSize,
-			MaxRetryDeadlineOffset: constant.DefaultMaxRetryDeadlineOffset,
+			BatchSize: constant.DefaultBatchSize,
 		},
 	}
 
@@ -271,70 +270,61 @@ func TestSanitizeStreamerConfigInsertAllDefaults(t *testing.T) {
 	}{
 		// full default
 		{
-			ExpectedFailOnInvalidRows:      expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
-			ExpectedFailForUnknownValues:   expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
-			ExpectedBatchSize:              expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
-			ExpectedMaxRetryDeadlineOffset: expectedDefaultStreamerConfig.InsertAllClient.MaxRetryDeadlineOffset,
+			ExpectedFailOnInvalidRows:    expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
+			ExpectedFailForUnknownValues: expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
+			ExpectedBatchSize:            expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
 		},
 		// fail on invalid rows cases
 		{
-			InputFailOnInvalidRows:         false,
-			ExpectedFailOnInvalidRows:      expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
-			ExpectedFailForUnknownValues:   expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
-			ExpectedBatchSize:              expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
-			ExpectedMaxRetryDeadlineOffset: expectedDefaultStreamerConfig.InsertAllClient.MaxRetryDeadlineOffset,
+			InputFailOnInvalidRows:       false,
+			ExpectedFailOnInvalidRows:    expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
+			ExpectedFailForUnknownValues: expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
+			ExpectedBatchSize:            expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
 		},
 		{
-			InputFailOnInvalidRows:         true,
-			ExpectedFailOnInvalidRows:      true,
-			ExpectedFailForUnknownValues:   expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
-			ExpectedBatchSize:              expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
-			ExpectedMaxRetryDeadlineOffset: expectedDefaultStreamerConfig.InsertAllClient.MaxRetryDeadlineOffset,
+			InputFailOnInvalidRows:       true,
+			ExpectedFailOnInvalidRows:    true,
+			ExpectedFailForUnknownValues: expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
+			ExpectedBatchSize:            expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
 		},
 		// fail on unknown values cases
 		{
-			ExpectedFailOnInvalidRows:      expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
-			InputFailForUnknownValues:      false,
-			ExpectedFailForUnknownValues:   expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
-			ExpectedBatchSize:              expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
-			ExpectedMaxRetryDeadlineOffset: expectedDefaultStreamerConfig.InsertAllClient.MaxRetryDeadlineOffset,
+			ExpectedFailOnInvalidRows:    expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
+			InputFailForUnknownValues:    false,
+			ExpectedFailForUnknownValues: expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
+			ExpectedBatchSize:            expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
 		},
 		{
-			ExpectedFailOnInvalidRows:      expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
-			InputFailForUnknownValues:      true,
-			ExpectedFailForUnknownValues:   true,
-			ExpectedBatchSize:              expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
-			ExpectedMaxRetryDeadlineOffset: expectedDefaultStreamerConfig.InsertAllClient.MaxRetryDeadlineOffset,
+			ExpectedFailOnInvalidRows:    expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
+			InputFailForUnknownValues:    true,
+			ExpectedFailForUnknownValues: true,
+			ExpectedBatchSize:            expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
 		},
 		// batch size cases
 		{
-			ExpectedFailOnInvalidRows:      expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
-			ExpectedFailForUnknownValues:   expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
-			InputBatchSize:                 -1,
-			ExpectedBatchSize:              1,
-			ExpectedMaxRetryDeadlineOffset: expectedDefaultStreamerConfig.InsertAllClient.MaxRetryDeadlineOffset,
+			ExpectedFailOnInvalidRows:    expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
+			ExpectedFailForUnknownValues: expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
+			InputBatchSize:               -1,
+			ExpectedBatchSize:            1,
 		},
 		{
-			ExpectedFailOnInvalidRows:      expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
-			ExpectedFailForUnknownValues:   expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
-			InputBatchSize:                 0,
-			ExpectedBatchSize:              expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
-			ExpectedMaxRetryDeadlineOffset: expectedDefaultStreamerConfig.InsertAllClient.MaxRetryDeadlineOffset,
+			ExpectedFailOnInvalidRows:    expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
+			ExpectedFailForUnknownValues: expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
+			InputBatchSize:               0,
+			ExpectedBatchSize:            expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
 		},
 		{
-			ExpectedFailOnInvalidRows:      expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
-			ExpectedFailForUnknownValues:   expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
-			InputBatchSize:                 42,
-			ExpectedBatchSize:              42,
-			ExpectedMaxRetryDeadlineOffset: expectedDefaultStreamerConfig.InsertAllClient.MaxRetryDeadlineOffset,
+			ExpectedFailOnInvalidRows:    expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
+			ExpectedFailForUnknownValues: expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
+			InputBatchSize:               42,
+			ExpectedBatchSize:            42,
 		},
 		// max retry deadline offset cases
 		{
-			ExpectedFailOnInvalidRows:      expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
-			ExpectedFailForUnknownValues:   expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
-			ExpectedBatchSize:              expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
-			InputMaxRetryDeadlineOffset:    0,
-			ExpectedMaxRetryDeadlineOffset: expectedDefaultStreamerConfig.InsertAllClient.MaxRetryDeadlineOffset,
+			ExpectedFailOnInvalidRows:    expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
+			ExpectedFailForUnknownValues: expectedDefaultStreamerConfig.InsertAllClient.FailForUnknownValues,
+			ExpectedBatchSize:            expectedDefaultStreamerConfig.InsertAllClient.BatchSize,
+			InputMaxRetryDeadlineOffset:  0,
 		},
 		{
 			ExpectedFailOnInvalidRows:      expectedDefaultStreamerConfig.InsertAllClient.FailOnInvalidRows,
@@ -355,13 +345,11 @@ func TestSanitizeStreamerConfigInsertAllDefaults(t *testing.T) {
 		inputCfg.InsertAllClient.FailOnInvalidRows = testCase.InputFailOnInvalidRows
 		inputCfg.InsertAllClient.FailForUnknownValues = testCase.InputFailForUnknownValues
 		inputCfg.InsertAllClient.BatchSize = testCase.InputBatchSize
-		inputCfg.InsertAllClient.MaxRetryDeadlineOffset = testCase.InputMaxRetryDeadlineOffset
 		// ... expected output
 		expectedOutputCfg := deepCloneStreamerConfig(&expectedDefaultStreamerConfig)
 		expectedOutputCfg.InsertAllClient.FailOnInvalidRows = testCase.ExpectedFailOnInvalidRows
 		expectedOutputCfg.InsertAllClient.FailForUnknownValues = testCase.ExpectedFailForUnknownValues
 		expectedOutputCfg.InsertAllClient.BatchSize = testCase.ExpectedBatchSize
-		expectedOutputCfg.InsertAllClient.MaxRetryDeadlineOffset = testCase.ExpectedMaxRetryDeadlineOffset
 		// ensure to configure out streamer config correctly,
 		// for the worker queue size, in case the batch size is defined
 		inputCfg.WorkerQueueSize = (testCase.ExpectedBatchSize + 1) / 2

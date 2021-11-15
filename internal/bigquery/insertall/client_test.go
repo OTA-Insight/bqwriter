@@ -93,8 +93,7 @@ func (sbqc *stubClient) AssertStringSlice(t *testing.T, expected []string) {
 }
 
 type TestClientConfig struct {
-	BatchSize              int
-	MaxRetryDeadlineOffset time.Duration
+	BatchSize int
 }
 
 func newTestClient(t *testing.T, cfg *TestClientConfig) (*stubClient, *Client) {
@@ -102,7 +101,7 @@ func newTestClient(t *testing.T, cfg *TestClientConfig) (*stubClient, *Client) {
 	if cfg == nil {
 		cfg = new(TestClientConfig)
 	}
-	retryClient, err := newClient(client, cfg.BatchSize, cfg.MaxRetryDeadlineOffset, test.Logger{})
+	retryClient, err := newClient(client, cfg.BatchSize, test.Logger{})
 	test.AssertNoErrorFatal(t, err)
 	return client, retryClient
 }
@@ -146,28 +145,14 @@ func TestBQInsertAllThickClientBatchExhaustBatch(t *testing.T) {
 	stubClient.AssertStringSlice(t, []string{"hello", "world", "!"})
 }
 
-func TestBQInsertAllThickClientFlushMaxDeadlineExhausted(t *testing.T) {
-	stubClient, client := newTestClient(t, &TestClientConfig{
-		BatchSize:              1,
-		MaxRetryDeadlineOffset: time.Millisecond * 100,
-	})
-	defer stubClient.Close()
-	stubClient.SetSleepPriorToPut(time.Millisecond * 200)
-
-	flushed, err := client.Put("hello")
-	test.AssertError(t, err)
-	test.AssertTrue(t, flushed)
-	test.AssertIsError(t, err, context.DeadlineExceeded)
-}
-
 func TestNewBQInsertAllThickClientWithNilClient(t *testing.T) {
-	client, err := newClient(nil, 0, 0, test.Logger{})
+	client, err := newClient(nil, 0, test.Logger{})
 	test.AssertError(t, err)
 	test.AssertNil(t, client)
 }
 
 func TestNewBQInsertAllThickClientWithNilLogger(t *testing.T) {
-	client, err := newClient(new(stubClient), 0, 0, nil)
+	client, err := newClient(new(stubClient), 0, nil)
 	test.AssertError(t, err)
 	test.AssertNil(t, client)
 }
@@ -190,7 +175,7 @@ func TestNewStdBQInsertAllThickClientInputErrors(t *testing.T) {
 	for _, testCase := range testCases {
 		client, err := NewClient(
 			testCase.ProjectID, testCase.DataSetID, testCase.TableID,
-			false, false, 0, 0,
+			false, false, 0,
 			test.Logger{},
 		)
 		test.AssertError(t, err)
@@ -210,7 +195,7 @@ func TestNewBQInsertAllThickClientErrors(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		client, err := newClient(
-			testCase.Client, 0, 0, testCase.Logger,
+			testCase.Client, 0, testCase.Logger,
 		)
 		test.AssertError(t, err)
 		test.AssertIsError(t, err, internal.ErrInvalidParam)

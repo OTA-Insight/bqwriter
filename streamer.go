@@ -124,7 +124,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 				projectID, dataSetID, tableID,
 				!insertAllCfg.FailOnInvalidRows,
 				!insertAllCfg.FailForUnknownValues,
-				insertAllCfg.BatchSize, insertAllCfg.MaxRetryDeadlineOffset,
+				insertAllCfg.BatchSize,
 				logger,
 			)
 			if err != nil {

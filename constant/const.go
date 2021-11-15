@@ -53,7 +53,7 @@ const (
 
 	// DefaultMaxBatchDelay defines the max amount of time a worker batches rows, prior to writing the batched rows,
 	// even when not yet full. Used in case the property is 0 (e.g. when undefined).
-	DefaultMaxBatchDelay = 5 * time.Second
+	DefaultMaxBatchDelay = 10 * time.Second
 
 	// DefaultWorkerQueueSize defines the default size of the job queue per worker used
 	// in order to allow the Streamer's users to write rows even if all workers are currently

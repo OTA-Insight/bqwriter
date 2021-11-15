@@ -17,7 +17,6 @@ package insertall
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/OTA-Insight/bqwriter/constant"
@@ -36,8 +35,6 @@ type Client struct {
 
 	rows      []interface{}
 	batchSize int
-
-	maxRetryDeadlineOffset time.Duration
 }
 
 // bqClient defines the API we expect from the BQ InsertAll client,
@@ -104,7 +101,7 @@ func newStdBQClient(projectID, dataSetID, tableID string, skipInvalidRows, ignor
 }
 
 // NewClient creates a new Client.
-func NewClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool, batchSize int, maxRetryDeadlineOffset time.Duration, logger log.Logger) (*Client, error) {
+func NewClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool, batchSize int, logger log.Logger) (*Client, error) {
 	if projectID == "" {
 		return nil, fmt.Errorf("bq insertAll client creation: validate projectID: %w: missing", internal.ErrInvalidParam)
 	}
@@ -118,10 +115,10 @@ func NewClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnkn
 	if err != nil {
 		return nil, err
 	}
-	return newClient(client, batchSize, maxRetryDeadlineOffset, logger)
+	return newClient(client, batchSize, logger)
 }
 
-func newClient(client bqClient, batchSize int, maxRetryDeadlineOffset time.Duration, logger log.Logger) (*Client, error) {
+func newClient(client bqClient, batchSize int, logger log.Logger) (*Client, error) {
 	if client == nil {
 		return nil, fmt.Errorf("bq insertAll client creation: validate client: %w: missing", internal.ErrInvalidParam)
 	}
@@ -131,9 +128,6 @@ func newClient(client bqClient, batchSize int, maxRetryDeadlineOffset time.Durat
 	if batchSize <= 0 {
 		batchSize = constant.DefaultBatchSize
 	}
-	if maxRetryDeadlineOffset == 0 {
-		maxRetryDeadlineOffset = constant.DefaultMaxRetryDeadlineOffset
-	}
 	return &Client{
 		client: client,
 
@@ -141,8 +135,6 @@ func newClient(client bqClient, batchSize int, maxRetryDeadlineOffset time.Durat
 
 		rows:      make([]interface{}, 0, batchSize),
 		batchSize: batchSize,
-
-		maxRetryDeadlineOffset: maxRetryDeadlineOffset,
 	}, nil
 }
 
@@ -181,9 +173,7 @@ func (bqc *Client) Flush() (err error) {
 	// it certainly is the case for the actual one used
 	//
 	// background ctx is used, as we always want to flush unwritten rows, even if parent ctx is done
-	// we do wrap it with a deadline context to ensure we get a correct deadline
-	ctx, cancelFunc := context.WithTimeout(context.Background(), bqc.maxRetryDeadlineOffset)
-	defer cancelFunc()
+	ctx := context.Background()
 	if err := bqc.client.Put(ctx, bqc.rows); err != nil {
 		return fmt.Errorf("thick insertAll BQ client: put batched rows (count=%d): %w", len(bqc.rows), err)
 	}

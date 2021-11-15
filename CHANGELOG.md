@@ -1,5 +1,14 @@
 # Changes
 
+## [v0.6.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.1...v0.6.0) (2021-11-15 ETA)
+
+Bug Fixes:
+
+- Remove duplicate deadline for InsertAll client, this setting is no longer required as anyhow the
+  insertAll inner BQ client has a max deadline which cannot be configured, which we can use as-is;
+
+work in progress
+
 ## [v0.6.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.0...v0.5.1) (2021-11-12)
 
 Documentation improvements:

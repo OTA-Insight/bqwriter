@@ -98,13 +98,6 @@ type (
 		// use a negative value or an explicit value of 1
 		// in case you want to write each row directly.
 		BatchSize int
-
-		// MaxRetryDeadlineOffset is the max amount of time the back off algorithm is allowed to take
-		// for its initial as well as all retry attempts. No retry should be attempted when already over this limit.
-		// This Offset is to be seen as a maximum, which can be stepped over but not by too much.
-		//
-		// Defaults to constant.DefaultMaxRetryDeadlineOffset if MaxRetryDeadlineOffset == 0.
-		MaxRetryDeadlineOffset time.Duration
 	}
 
 	// StorageClientConfig is used to configure a storage client API driven Streamer Client.
@@ -283,15 +276,6 @@ func sanitizeInsertAllClientConfig(cfg *InsertAllClientConfig) (sanCfg *InsertAl
 		sanCfg.BatchSize = constant.DefaultBatchSize
 	} else {
 		sanCfg.BatchSize = cfg.BatchSize
-	}
-
-	// MaxRetryDeadlineOffset is the total time the write action is allowed to take
-	// and cannot be disabled. It is either the by this Go package defined default,
-	// or else its value is respected as-is, with once again no upper limit.
-	if cfg.MaxRetryDeadlineOffset == 0 {
-		sanCfg.MaxRetryDeadlineOffset = constant.DefaultMaxRetryDeadlineOffset
-	} else {
-		sanCfg.MaxRetryDeadlineOffset = cfg.MaxRetryDeadlineOffset
 	}
 
 	// return the sanitized named output config
