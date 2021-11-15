@@ -65,7 +65,7 @@ func (bqc *stdBQClient) Put(ctx context.Context, data interface{}) error {
 	inserter.SkipInvalidRows = bqc.skipInvalidRows
 	inserter.IgnoreUnknownValues = bqc.ignoreUnknownValues
 	if err := inserter.Put(ctx, data); err != nil {
-		return fmt.Errorf("put data into BQ using google-API inertAll: %w", err)
+		return fmt.Errorf("put data into BQ using google-API insertAll: %w", err)
 	}
 	return nil
 }
