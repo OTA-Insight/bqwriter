@@ -1,6 +1,14 @@
 # Changes
 
-## [v0.6.2](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.2...v0.6.1) (2021-11-17)
+## [v0.6.3](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.2...v0.6.3) (TBA)
+
+Documentation:
+
+- Fix version code compare links in CHANGELOG.md;
+
+work in progress
+
+## [v0.6.2](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.1...v0.6.2) (2021-11-17)
 
 Documentation:
 
@@ -15,7 +23,7 @@ Other changes:
 - update `golang.org/x/net`, `golang.org/x/sys` and `google.golang.org/genproto`
   to latest version (no semver);
 
-## [v0.6.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.1...v0.6.0) (2021-11-15)
+## [v0.6.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.0...v0.6.1) (2021-11-15)
 
 Bug Fixes:
 
@@ -38,7 +46,7 @@ Other changes:
 - update `golang.org/x/net`, `golang.org/x/sys` and `google.golang.org/genproto`
   to latest version (no semver);
 
-## [v0.6.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.0...v0.5.1) (2021-11-12)
+## [v0.6.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.1...v0.6.0) (2021-11-12)
 
 Documentation improvements:
 
@@ -59,7 +67,7 @@ Bug Fixes:
   to underlying connections being reset or a similar kind of EOF event;
 - improve & clean up integration tests;
 
-## [v0.5.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.1...v0.5.0) (2021-11-10)
+## [v0.5.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.0...v0.5.1) (2021-11-10)
 
 Update storage API documentation & end-to-end tests:
 
@@ -80,7 +88,7 @@ Bug Fixes:
 - a couple of error logs used wrongfully the directive `%w` for errors instead of `%v`,
   this has now been corrected and should result in cleaner logs;
 
-## [v0.5.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.5.0...v0.4.1) (2021-11-09)
+## [v0.5.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.4.1...v0.5.0) (2021-11-09)
 
 - add batch upload support (https://cloud.google.com/bigquery/docs/batch-loading-data),
   this is a third client next to the already supported InsertAll (legacy) and storage API clients,
@@ -103,12 +111,12 @@ Bug Fixes:
 - logger:
   - std logger (STDERR) was logging without the use of newlines to separate log statements;
 
-## [v0.4.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.4.0...v0.4.1) (2021-12-06)
+## [v0.4.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.4.1...v0.4.0) (2021-12-06)
 
 - add storage API driven stream examples to README;
 - fix nil deref bug when creating streamer using StorageAPI;
 
-## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.4.0) (2021-11-05)
+## [v0.4.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.4.0...v0.3.1) (2021-11-05)
 
 - refactor code:
   - all internal code is now found in one of the internal packages,
@@ -141,20 +149,20 @@ Other updates made to the repository:
 - rename this file to [CHANGELOG.md](CHANGELOG.md) (was CHANGES.md) in order to better reflect the usual conventions;
 - add other conventional special files: [AUTHORS](AUTHORS) and [CODEOWNERS](CODEOWNERS);
 
-## [v0.3.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.0...v0.3.1) (2021-10-28)
+## [v0.3.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.1...v0.3.0) (2021-10-28)
 
 - fix README.md badges and rename LICENSE to LICENSE.txt;
 - updated dependencies to latest:
   - golang.org/x/*: 2021-10-20+;
   - google.golang.org/api: v0.59.0;
 
-## [v0.3.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.2.0...v0.3.0) (2021-10-25)
+## [v0.3.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.3.0...v0.2.0) (2021-10-25)
 
 - remove unused WriteRetryConfig (its use was eliminated in v0.2.0);
 - fix a linter issue found in `v0.2.0`'s `streamer.go` codebase (indention);
 - add golint-ci dev + CI support for better code quality;
 
-## [v0.2.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.1.0...v0.2.0) (2021-10-19)
+## [v0.2.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.2.0...v0.1.0) (2021-10-19)
 
 - remove exponential back off logic from insertAll driven streamer client,
   as this logic is already built-in the std BQ client used internally;
