@@ -10,6 +10,11 @@ Testing:
 
 - Improve test code coverage (was ~69%, now it is %80+);
 
+Other changes:
+
+- update `golang.org/x/net`, `golang.org/x/sys` and `google.golang.org/genproto`
+  to latest version (no semver);
+
 work in progress
 
 ## [v0.6.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.1...v0.6.0) (2021-11-15)
