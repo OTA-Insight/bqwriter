@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"cloud.google.com/go/bigquery"
 	"github.com/OTA-Insight/bqwriter/constant"
 	"github.com/OTA-Insight/bqwriter/internal"
 	internalBQ "github.com/OTA-Insight/bqwriter/internal/bigquery"
@@ -47,58 +46,6 @@ type bqClient interface {
 	// Close should be called when the client is no longer needed.
 	// It need not be called at program exit.
 	Close() error
-}
-
-// stdBQClient impements bqClient using the official Golang Gcloud BigQuery API client.
-type stdBQClient struct {
-	client *bigquery.Client
-
-	dataSetID string
-	tableID   string
-
-	skipInvalidRows     bool
-	ignoreUnknownValues bool
-}
-
-// Put implements bqClient::Put
-func (bqc *stdBQClient) Put(ctx context.Context, data interface{}) error {
-	inserter := bqc.client.Dataset(bqc.dataSetID).Table(bqc.tableID).Inserter()
-	inserter.SkipInvalidRows = bqc.skipInvalidRows
-	inserter.IgnoreUnknownValues = bqc.ignoreUnknownValues
-	if err := inserter.Put(ctx, data); err != nil {
-		return fmt.Errorf("put data into BQ using google-API insertAll: %w", err)
-	}
-	return nil
-}
-
-// Close implements bqClient::Close
-func (bqc *stdBQClient) Close() error {
-	if err := bqc.client.Close(); err != nil {
-		return fmt.Errorf("close BQ google-API insertAll client: %w", err)
-	}
-	return nil
-}
-
-// newStdBQClient creates a new Client,
-// a production-ready implementation of bqClient.
-func newStdBQClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool) (*stdBQClient, error) {
-	// NOTE: we are using the background Context,
-	// as to ensure that we can always write to the client,
-	// even when the actual parent context is already done.
-	// This is a requirement given the streamer will batch its rows.
-	client, err := bigquery.NewClient(context.Background(), projectID)
-	if err != nil {
-		return nil, fmt.Errorf("create BQ Insert All Client: %w", err)
-	}
-	return &stdBQClient{
-		client: client,
-
-		dataSetID: dataSetID,
-		tableID:   tableID,
-
-		skipInvalidRows:     skipInvalidRows,
-		ignoreUnknownValues: ignoreUnknownValues,
-	}, nil
 }
 
 // NewClient creates a new Client.

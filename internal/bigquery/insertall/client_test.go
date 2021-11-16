@@ -163,6 +163,14 @@ func TestBQInsertAllRetryInternalErrors(t *testing.T) {
 	stubClient.AssertStringSlice(t, []string{"hello"})
 }
 
+func TestBQInsertAllCloseError(t *testing.T) {
+	stubClient, client := newTestClient(t, nil)
+	defer stubClient.Close()
+	stubClient.AddNextError(fmt.Errorf("close error: %w", test.ErrStatic))
+	err := client.Close()
+	test.AssertIsError(t, err, test.ErrStatic)
+}
+
 func TestNewBQInsertAllThickClientWithNilClient(t *testing.T) {
 	client, err := newClient(nil, 0, test.Logger{})
 	test.AssertError(t, err)
