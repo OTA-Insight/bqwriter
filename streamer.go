@@ -23,15 +23,14 @@ import (
 	"sync"
 	"time"
 
-	"cloud.google.com/go/bigquery/storage/managedwriter/adapt"
 	"github.com/OTA-Insight/bqwriter/internal"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/batch"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/insertall"
+	"github.com/OTA-Insight/bqwriter/internal/bigquery/protobuf"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
 	"github.com/OTA-Insight/bqwriter/log"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // Streamer is a simple BQ stream-writer, allowing you
@@ -76,23 +75,9 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 					if err != nil {
 						return nil, fmt.Errorf("BigQuery: NewStreamer: New BigQuery-Schema encoding Storage client: create schema encoder: %w", err)
 					}
-					convertedSchema, err := adapt.BQSchemaToStorageTableSchema(*storageCfg.BigQuerySchema)
+					protobufDescriptor, err = protobuf.BigQuerySchemaToProtobufDescripor(*storageCfg.BigQuerySchema)
 					if err != nil {
-						return nil, fmt.Errorf("BigQuery: NewStreamer: adapt.BQSchemaToStorageTableSchema: %w", err)
-					}
-
-					descriptor, err := adapt.StorageSchemaToProto2Descriptor(convertedSchema, "root")
-					if err != nil {
-						return nil, fmt.Errorf("BigQuery: NewStreamer: adapt.StorageSchemaToDescriptor: %w", err)
-					}
-					messageDescriptor, ok := descriptor.(protoreflect.MessageDescriptor)
-					if !ok {
-						// nolint: goerr113
-						return nil, errors.New("BigQuery: NewStreamer: adapted descriptor is not a message descriptor")
-					}
-					protobufDescriptor, err = adapt.NormalizeDescriptor(messageDescriptor)
-					if err != nil {
-						return nil, fmt.Errorf("BigQuery: NewStreamer: adapt.NormalizeDescriptor: %w", err)
+						return nil, fmt.Errorf("BigQuery: NewStreamer: %w", err)
 					}
 				}
 				client, err := storage.NewClient(

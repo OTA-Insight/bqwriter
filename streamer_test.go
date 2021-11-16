@@ -57,6 +57,21 @@ func TestNewStreamerInputErrors(t *testing.T) {
 	}
 }
 
+func TestNewStreamerInputErrorMutuallyExclusiveClientConfigs(t *testing.T) {
+	builder, err := NewStreamer(
+		context.Background(),
+		"a", "b", "c",
+		&StreamerConfig{
+			StorageClient: &StorageClientConfig{
+				BigQuerySchema: new(bq.Schema),
+			},
+			BatchClient: new(BatchClientConfig),
+		},
+	)
+	test.AssertIsError(t, err, internal.ErrMutuallyExclusiveConfigs)
+	test.AssertNil(t, builder)
+}
+
 // stubBQClient is an in-memory stub client for the bigquery.Client interface,
 // allowing us to see what data is written into it
 type stubBQClient struct {
@@ -219,6 +234,20 @@ func TestStreamerCreationByInvalidConfig(t *testing.T) {
 		},
 	)
 	test.AssertError(t, err)
+	test.AssertNil(t, streamer)
+}
+
+func TestStreamerCreationByFailedClientCreation(t *testing.T) {
+	// always use same client for our purposes
+	clientBuilder := func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig, batchCfg *BatchClientConfig) (bigquery.Client, error) {
+		return nil, fmt.Errorf("failed to create client: %w", test.ErrStatic)
+	}
+	streamer, err := newStreamerWithClientBuilder(
+		context.Background(), clientBuilder,
+		"a", "b", "c",
+		nil,
+	)
+	test.AssertIsError(t, err, test.ErrStatic)
 	test.AssertNil(t, streamer)
 }
 
