@@ -1,5 +1,17 @@
 # Changes
 
+## [v0.6.2](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.2...v0.6.1) (2021-11-17 ETA)
+
+Documentation:
+
+- Add a FAQ to the README.md documentation;
+
+Testing:
+
+- Improve test code coverage (was ~69%, now it is %80+);
+
+work in progress
+
 ## [v0.6.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.1...v0.6.0) (2021-11-15)
 
 Bug Fixes:
