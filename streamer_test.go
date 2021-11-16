@@ -204,6 +204,24 @@ func TestStreamerFlowStandard(t *testing.T) {
 	client.AssertStringSlice(t, []string{"hello", "world"})
 }
 
+func TestStreamerCreationByInvalidConfig(t *testing.T) {
+	client := new(stubBQClient)
+	// always use same client for our purposes
+	clientBuilder := func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig, batchCfg *BatchClientConfig) (bigquery.Client, error) {
+		return client, nil
+	}
+	streamer, err := newStreamerWithClientBuilder(
+		context.Background(), clientBuilder,
+		"a", "b", "c",
+		&StreamerConfig{
+			StorageClient: new(StorageClientConfig),
+			BatchClient:   new(BatchClientConfig),
+		},
+	)
+	test.AssertError(t, err)
+	test.AssertNil(t, streamer)
+}
+
 func TestStreamerWriteErrorAlreadyClosed(t *testing.T) {
 	_, streamer := newTestStreamer(context.Background(), t, testStreamerConfig{})
 	streamer.Close()

@@ -24,6 +24,26 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
+func TestProtobufEncoderInvalidData(t *testing.T) {
+	// protobuf encoder only accepts proto.Message values
+	testCases := []interface{}{
+		nil,
+		1,
+		"foo",
+		struct{}{},
+		map[string]interface{}{},
+	}
+
+	encoder := NewProtobufEncoder()
+	test.AssertNotNil(t, encoder)
+
+	for _, testCase := range testCases {
+		rows, err := encoder.EncodeRows(testCase)
+		test.AssertError(t, err)
+		test.AssertNil(t, rows)
+	}
+}
+
 func TestProtobufEncoderProto2(t *testing.T) {
 	testCases := []struct {
 		InputName      string
