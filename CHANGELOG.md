@@ -1,6 +1,6 @@
 # Changes
 
-## [v0.6.2](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.2...v0.6.1) (2021-11-17 ETA)
+## [v0.6.2](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.2...v0.6.1) (2021-11-17)
 
 Documentation:
 
@@ -14,8 +14,6 @@ Other changes:
 
 - update `golang.org/x/net`, `golang.org/x/sys` and `google.golang.org/genproto`
   to latest version (no semver);
-
-work in progress
 
 ## [v0.6.1](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.1...v0.6.0) (2021-11-15)
 
