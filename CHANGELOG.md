@@ -1,6 +1,16 @@
 # Changes
 
-## [v0.6.3](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.2...v0.6.3) (TBA)
+## [v0.6.3](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.2...v0.6.3) (2021-12-06)
+
+Dependencies:
+
+- update `cloud.google.com/go/bigquery` to v1.25.0 (was v1.24.0):
+  - contained a breaking change in the ManagedWriter API, `NoStreamOffset` is no longer to be passed
+    to `AppendRow` and instead the call is to be made without an option for our purposes (Default streams);
+- update `cloud.google.com/go` to v0.98.0 (was v0.97.0);
+- update `cloud.google.com/api` to v0.61.0 (was v0.60.0);
+- update `github.com/cncf/xds/go`, `golang.org/x/net`, `golang.org/x/sys` and `google.golang.org/genproto`
+  to latest version (no semver);
 
 Documentation:
 

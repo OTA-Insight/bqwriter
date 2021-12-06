@@ -137,7 +137,10 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 	// as it would only be useful in case we want to do
 	// diagnostics with them. Once we would support CommittedStream than
 	// we do want to use the offset for tracking purposes.
-	result, err := bqc.stream.AppendRows(bqc.ctx, binaryData, managedwriter.NoStreamOffset)
+	// NOTE 2: default streams can not have an option set,
+	// in the past we used "NoStreamOffset" for this, but the API has evolved to options,
+	// and thuse we can rely on the default for our purposes.
+	result, err := bqc.stream.AppendRows(bqc.ctx, binaryData)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return false, fmt.Errorf("BQ Storage Client: Stream: AppendRows: %w", err)
 	}
