@@ -2,6 +2,10 @@
 
 ## [v0.6.3](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.2...v0.6.3) (2021-12-06)
 
+Maintenance:
+
+- reduce cyclomatic complexities in test/integration/main.go;
+
 Dependencies:
 
 - update `cloud.google.com/go/bigquery` to v1.25.0 (was v1.24.0):

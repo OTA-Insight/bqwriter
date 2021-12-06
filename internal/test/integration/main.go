@@ -32,19 +32,44 @@ const (
 	defaultBQTable   = "tmp"
 )
 
-var (
-	iterations = flag.Int("iterations", defaultIterations, "how many values to write to each of the different streamer tests")
-	workers    = flag.Int("workers", runtime.NumCPU(), "how many workers to use to run tests in parallel")
-	streamers  = flag.String("streamers", "", "csv of streamers to test, one or multiple of following options: insertall, storage, storage-json, batch")
-	debug      = flag.Bool("debug", false, "enable to show debug logs")
+var cliConfig struct {
+	Iterations int
+	Workers    int
+	Streamers  string
+	Debug      bool
 
-	bqProject = flag.String("project", defaultBQProject, "BigQuery project to write data to")
-	bqDataset = flag.String("dataset", defaultBQDataset, "BigQuery dataset to write data to")
-	bqTable   = flag.String("table", defaultBQTable, "BigQuery table to write data to")
-)
+	BQProject string
+	BQDataset string
+	BQTable   string
+}
 
 func init() {
+	flag.IntVar(&cliConfig.Iterations, "iterations", defaultIterations, "how many values to write to each of the different streamer tests")
+	flag.IntVar(&cliConfig.Workers, "workers", runtime.NumCPU(), "how many workers to use to run tests in parallel")
+	flag.StringVar(&cliConfig.Streamers, "streamers", "", "csv of streamers to test, one or multiple of following options: insertall, storage, storage-json, batch")
+	flag.BoolVar(&cliConfig.Debug, "debug", false, "enable to show debug logs")
+
+	flag.StringVar(&cliConfig.BQProject, "project", defaultBQProject, "BigQuery project to write data to")
+	flag.StringVar(&cliConfig.BQDataset, "dataset", defaultBQDataset, "BigQuery dataset to write data to")
+	flag.StringVar(&cliConfig.BQTable, "table", defaultBQTable, "BigQuery table to write data to")
+
 	flag.Parse()
+
+	if cliConfig.Iterations <= 0 {
+		cliConfig.Iterations = defaultIterations
+	}
+	if cliConfig.BQProject == "" {
+		cliConfig.BQProject = defaultBQProject
+	}
+	if cliConfig.BQDataset == "" {
+		cliConfig.BQDataset = defaultBQDataset
+	}
+	if cliConfig.BQTable == "" {
+		cliConfig.BQTable = defaultBQTable
+	}
+	if cliConfig.Workers <= 0 {
+		cliConfig.Workers = runtime.NumCPU()
+	}
 }
 
 type streamerTest = func(ctx context.Context, iterations int, logger *Logger, projectID, datasetID, tableID string) error
@@ -99,10 +124,10 @@ func createTestsForStreamers(logger *Logger, streamers string) []streamerTest {
 }
 
 func main() {
-	logger := NewLogger(*debug)
+	logger := NewLogger(cliConfig.Debug)
 
 	// create tests
-	tests := createTestsForStreamers(logger, *streamers)
+	tests := createTestsForStreamers(logger, cliConfig.Streamers)
 	if len(tests) == 0 {
 		tests = createTestsForStreamers(logger, "insertall,storage,storage-json,batch")
 	}
@@ -116,67 +141,13 @@ func main() {
 	testCh := make(chan streamerTest)
 	resultCh := make(chan string)
 
-	iterations := *iterations
-	if iterations <= 0 {
-		iterations = defaultIterations
-	}
-	_ = iterations
-
-	bqProject := *bqProject
-	if bqProject == "" {
-		bqProject = defaultBQProject
-	}
-	_ = bqProject
-	bqDataset := *bqDataset
-	if bqDataset == "" {
-		bqDataset = defaultBQDataset
-	}
-	_ = bqDataset
-	bqTable := *bqTable
-	if bqTable == "" {
-		bqTable = defaultBQTable
-	}
-	_ = bqTable
-
 	// ceate workers to run tests
 	var workersWG sync.WaitGroup
-	workers := *workers
-	if workers <= 0 {
-		workers = runtime.NumCPU()
-	}
-	for i := 0; i < workers; i++ {
+	for i := 0; i < cliConfig.Workers; i++ {
 		workersWG.Add(1)
 		go func() {
 			defer workersWG.Done()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case test, ok := <-testCh:
-					if !ok {
-						return
-					}
-					// nolint: govet
-					testCtx, _ := context.WithTimeout(ctx, time.Second*10)
-					err := test(
-						testCtx,
-						iterations, logger,
-						bqProject, bqDataset, bqTable,
-					)
-					if err != nil {
-						select {
-						case <-ctx.Done():
-							return
-						case resultCh <- fmt.Sprintf("test failed with error: %v", err):
-						}
-					}
-					select {
-					case <-ctx.Done():
-						return
-					case resultCh <- "test finished":
-					}
-				}
-			}
+			testWorkerfunc(ctx, logger, testCh, resultCh)
 		}()
 	}
 
@@ -221,4 +192,36 @@ func main() {
 	logger.Info("")
 	logger.Info("----")
 	logger.Info("Bye!")
+}
+
+func testWorkerfunc(ctx context.Context, logger *Logger, testCh <-chan streamerTest, resultCh chan<- string) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case test, ok := <-testCh:
+			if !ok {
+				return
+			}
+			// nolint: govet
+			testCtx, _ := context.WithTimeout(ctx, time.Second*10)
+			err := test(
+				testCtx,
+				cliConfig.Iterations, logger,
+				cliConfig.BQProject, cliConfig.BQDataset, cliConfig.BQTable,
+			)
+			if err != nil {
+				select {
+				case <-ctx.Done():
+					return
+				case resultCh <- fmt.Sprintf("test failed with error: %v", err):
+				}
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- "test finished":
+			}
+		}
+	}
 }
