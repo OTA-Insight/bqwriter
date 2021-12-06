@@ -5,6 +5,7 @@
 Maintenance:
 
 - reduce cyclomatic complexities in test/integration/main.go;
+- add comments to internal functions for which it was missing;
 
 Dependencies:
 

@@ -138,6 +138,9 @@ func GRPCRetryErrorFilter(err error) bool {
 	}
 }
 
+// HttpInternalErrorFilter is an extra filter we use for our InsertAll (gax-based) retry logic,
+// as to make sure we retry all (temporary) server faults (5xx status), given the default InsertAll client
+// in the official implementation doens't retry it.
 func HttpInternalErrorFilter(err error) bool {
 	var googleApiErr *googleapi.Error
 	if !errors.As(err, &googleApiErr) {
