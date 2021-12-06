@@ -22,8 +22,6 @@ Documentation:
 - Fix version code compare links in CHANGELOG.md;
 - Add Awesome-Go badge to README as BQWriter is since 2021-11-17 listed in the awesome-go curated list;
 
-work in progress
-
 ## [v0.6.2](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.1...v0.6.2) (2021-11-17)
 
 Documentation:
