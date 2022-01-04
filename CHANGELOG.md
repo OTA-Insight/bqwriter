@@ -1,5 +1,15 @@
 # Changes
 
+## [v0.6.4](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.3...v0.6.4) (2022-01-04)
+
+Dependencies:
+
+- update `cloud.google.com/go` to v0.99.0 (was v0.98.0);
+- update `cloud.google.com/api` to v0.63.0 (was v0.61.0);
+- update `cloud.google.com/grpc` to v1.43.0 (was v1.42.0);
+- update `github.com/cncf/xds`, `github.com/cncf/xds/go`, `golang.org/x/net`, `golang.org/x/sys` and `google.golang.org/genproto`
+  to latest version (no semver);
+
 ## [v0.6.3](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.2...v0.6.3) (2021-12-06)
 
 Maintenance:
