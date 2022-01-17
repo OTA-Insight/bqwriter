@@ -1,5 +1,23 @@
 # Changes
 
+## [v0.6.5](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.4...v0.6.5) (2022-01-17)
+
+Dependencies:
+
+- update `cloud.google.com/bigquery` to v1.26.0 (was v1.25.0);
+- update `cloud.google.com/go` to v0.100.2 (was v0.99.0);
+- update `cloud.google.com/api` to v0.65.0 (was v0.63.0);
+- update `github.com/cncf/xds`, `github.com/cncf/xds/go`, `github.com/udpa/go`,
+  `golang.org/x/net`, `golang.org/x/sys` and `google.golang.org/genproto`
+  to latest version (no semver);
+
+Indirect Dependencies:
+- update ` github.com/envoyproxy/protoc-gen-validate` to v0.6.3 (was v0.6.2;
+
+New Indirect Dependencies:
+- add `cloud.google.com/go/compute` (v1.0.0);
+- add `cloud.google.com/go/iam` (v0.1.0);
+
 ## [v0.6.4](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.3...v0.6.4) (2022-01-04)
 
 Dependencies:
