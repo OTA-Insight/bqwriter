@@ -1,5 +1,22 @@
 # Changes
 
+## [v0.6.6](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.5...v0.6.6) (2022-01-31)
+
+Updated Dependencies:
+
+- update `cloud.google.com/bigquery` to v1.27.0 (was v1.26.0);
+  - augments internal retry logic for `insertAll` (default) client: <https://github.com/googleapis/google-cloud-go/pull/5387/files>;
+- update `google.golang.org/grpc` to v1.44.0 (was v1.43.0);
+
+Updated Indirect Dependencies:
+
+- update `cloud.google.com/go/compute` to v1.1.0 (was v1.0.0);
+- update `google.golang.org/api` to v0.66.0 (was v0.65.0);
+- update `golang.org/x/net`, `golang.org/x/sys` and `google.golang.org/genproto` to latest (no semver);
+
+Removed Indirect Dependencies:
+- remove `cloud.google.com/go/iam`;
+
 ## [v0.6.5](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.4...v0.6.5) (2022-01-17)
 
 Dependencies:
