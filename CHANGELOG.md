@@ -1,5 +1,16 @@
 # Changes
 
+## [v0.6.7](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.6...v0.6.7) (2022-02-07)
+
+Updated Dependencies:
+
+- update `google.golang.org/api` to v0.67.0 (was v0.66.0);
+
+Updated Indirect Dependencies:
+
+- update `cloud.google.com/go/compute` to v1.2.0 (was v1.1.0);
+- update `golang.org/x/sys` and `google.golang.org/genproto` to latest (no semver);
+
 ## [v0.6.6](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.5...v0.6.6) (2022-01-31)
 
 Updated Dependencies:
