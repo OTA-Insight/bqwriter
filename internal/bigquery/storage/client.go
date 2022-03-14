@@ -86,8 +86,7 @@ func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, d
 		return nil, fmt.Errorf("BQ Storage Client creation: create managed writer: %w", err)
 	}
 	writerOpts := []managedwriter.WriterOption{
-		managedwriter.WithDestinationTable(fmt.Sprintf(
-			"projects/%s/datasets/%s/tables/%s",
+		managedwriter.WithDestinationTable(managedwriter.TableParentFromParts(
 			projectID, dataSetID, tableID,
 		)),
 		managedwriter.WithDataOrigin("OTA-Insight/bqwriter"),

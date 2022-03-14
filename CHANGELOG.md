@@ -1,5 +1,22 @@
 # Changes
 
+## [v0.6.11](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.0...v0.6.11) (2022-03-14)
+
+Updated Dependencies:
+
+- update `google.golang.org/api` to v0.71.0 (was v0.70.0);
+- update `cloud.google.com/bigquery` to v1.29.0 (was v1.28.0);
+  - ease of use (suggested by @glendc): introduce `TableParentFromParts`
+    in order to auto-format the parent table URI correctly;
+
+- update `google.golang.org/grpc` to v1.45.0 (was v1.44.0);
+
+Updated Indirect Dependencies:
+
+- update `cloud.google.com/go/iam` to v0.3.0 (was v0.2.0);
+- update `golang.org/x/oauth2`, `golang.org/x/sys`
+  and `google.golang.org/genproto` to latest (no semver);
+
 ## [v0.6.10](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.9...v0.6.10) (2022-02-28)
 
 Updated Dependencies:
