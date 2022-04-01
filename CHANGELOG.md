@@ -1,5 +1,16 @@
 # Changes
 
+## [v0.6.13](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.12...v0.6.13) (2022-04-01)
+
+Updated Dependencies:
+
+- update `cloud.google.com/bigquery` to v1.30.2 (was v1.30.0);
+- update `google.golang.org/api` to v0.74.0 (was v0.73.0);
+
+Updated Indirect Dependencies:
+
+- update `golang.org/x/sys` and `google.golang.org/genproto` to latest (no semver);
+
 ## [v0.6.12](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.11...v0.6.12) (2022-03-22)
 
 Updated Dependencies:
