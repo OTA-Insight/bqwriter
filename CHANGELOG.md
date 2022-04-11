@@ -1,5 +1,11 @@
 # Changes
 
+## [v0.6.14](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.13...v0.6.14) (2022-04-11)
+
+Updated Indirect Dependencies:
+
+- update `golang.org/x/sys`, `golang.org/x/net` and `google.golang.org/genproto` to latest (no semver);
+
 ## [v0.6.13](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.12...v0.6.13) (2022-04-01)
 
 Updated Dependencies:
