@@ -1,5 +1,19 @@
 # Changes
 
+## [v0.6.16](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.15...v0.6.16) (2022-04-25)
+
+Updated Dependencies:
+
+- update `google.golang.org/grpc` to v1.46.0 (was v1.45.0);
+- update `cloud.google.com/go` to v0.101.0 (was v0.100.2);
+- update `google.golang.org/api` to v0.75.0 (was v0.74.0);
+
+Updated Indirect Dependencies:
+
+- update `cloud.google.com/go/compute` to v1.6.1 (was v1.6.0);
+- update `golang.org/x/sys`, `golang.org/x/net`,
+  `golang.org/x/oauth2` and `google.golang.org/genproto` to latest (no semver);
+
 ## [v0.6.15](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.14...v0.6.15) (2022-04-19)
 
 Updated Dependencies:
