@@ -1,5 +1,20 @@
 # Changes
 
+## [v0.6.17](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.16...v0.6.17) (2022-05-02)
+
+Updated Dependencies:
+
+- update `google.golang.org/api` to v0.77.0 (was v0.75.0);
+
+Updated Indirect Dependencies:
+
+- update `golang.org/x/sys`, `golang.org/x/net`, and `google.golang.org/genproto` to latest (no semver);
+
+Added Indirect Dependencies:
+
+- add `github.com/google/go-cmp` v0.5.8
+
+
 ## [v0.6.16](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.15...v0.6.16) (2022-04-25)
 
 Updated Dependencies:
