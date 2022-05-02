@@ -1,6 +1,6 @@
 # Changes
 
-## [v0.6.17](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.16...v0.6.17) (2022-05-22)
+## [v0.6.17](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.16...v0.6.17) (2022-05-02)
 
 Updated Dependencies:
 
