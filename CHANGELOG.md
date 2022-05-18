@@ -1,5 +1,18 @@
 # Changes
 
+## [v0.6.19](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.18...v0.6.19) (2022-05-18)
+
+Update Dependencies:
+
+- update `google.golang.org/grpc` to v1.46.2 (was v1.46.2);
+- update `google.golang.org/api` to v0.80.0 (was v0.78.0);
+- update `github.com/googleapis/gax-go/v2` to v2.4.0 (was v2.3.0);
+
+Updated Indirect Dependencies:
+
+- update `golang.org/x/sys`, `golang.org/x/net`, `google.golang.org/genproto`
+  and `golang.org/x/xerrors` to latest (no semver);
+
 ## [v0.6.18](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.17...v0.6.18) (2022-05-10)
 
 Updated Dependencies:
