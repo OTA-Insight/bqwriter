@@ -1,5 +1,16 @@
 # Changes
 
+## [v0.6.20](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.19...v0.6.20) (2022-05-30)
+
+Upgraded Dependencies:
+
+- `cloud.google.com/go`: v0.101.1 => v0.102.0
+- `golang.org/x/net`: v0.0.0-20220517181318-183a9ca12b87 => v0.0.0-20220526153639-5463443f8c37
+- `golang.org/x/oauth2`: v0.0.0-20220411215720-9780585627b5 => v0.0.0-20220524215830-622c5d57e401
+- `golang.org/x/sys`: v0.0.0-20220517195934-5e4e11fc645e => v0.0.0-20220520151302-bc2c85ada10a
+- `google.golang.org/api`: v0.80.0 => v0.81.0
+- `google.golang.org/genproto`: v0.0.0-20220505152158-f39f71e6c8f3 => v0.0.0-20220527130721-00d5c0f3be58
+
 ## [v0.6.19](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.18...v0.6.19) (2022-05-18)
 
 Update Dependencies:
