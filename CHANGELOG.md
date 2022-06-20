@@ -1,5 +1,21 @@
 # Changes
 
+## [v0.6.22](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.21...v0.6.22) (2022-06-20)
+
+Upgraded Dependencies:
+
+- `cloud.google.com/go`: v0.102.0 => v0.102.1
+- `cloud.google.com/go/bigquery`: v1.32.0 => v1.33.0
+- `cloud.google.com/go/compute`: v1.6.1 => v1.7.0
+- `golang.org/x/net`: v0.0.0-20220607020251-c690dde0001d => v0.0.0-20220617184016-355a448f1bc9
+- `golang.org/x/sys`: v0.0.0-20220520151302-bc2c85ada10a => v0.0.0-20220615213510-4f61da869c0c
+- `google.golang.org/api`: v0.82.0 => v0.84.0
+- `google.golang.org/genproto`: v0.0.0-20220607140733-d738665f6195 => v0.0.0-20220617124728-180714bec0ad
+
+Added Dependencies:
+
+- `github.com/googleapis/enterprise-certificate-proxy`: v0.1.0
+
 ## [v0.6.21](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.20...v0.6.21) (2022-06-08)
 
 Upgraded Dependencies:
