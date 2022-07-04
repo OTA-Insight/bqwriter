@@ -1,5 +1,23 @@
 # Changes
 
+## [v0.6.24](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.23...v0.6.24) (2022-07-04)
+
+Go Version Support:
+
+- min version is now Go 1.17 (was 1.15);
+- max version is now Go 1.18 (was 1.17);
+  - Note that latest stable release should always work,
+    but this is the max version that is being tested as part of our CI pipeline;
+
+Upgraded Dependencies:
+
+- `cloud.google.com/go`: v0.102.1 => v0.103.0
+- `golang.org/x/net`: v0.0.0-20220624214902-1bab6f366d9e => v0.0.0-20220630215102-69896b714898
+- `golang.org/x/oauth2`: v0.0.0-20220622183110-fd043fe589d2 => v0.0.0-20220630143837-2104d58473e0
+- `golang.org/x/sys`: v0.0.0-20220624220833-87e55d714810 => v0.0.0-20220702020025-31831981b65f
+- `google.golang.org/api`: v0.85.0 => v0.86.0
+- `google.golang.org/genproto`: v0.0.0-20220624142145-8cd45d7dbd1f => v0.0.0-20220630174209-ad1d48641aa7
+
 ## [v0.6.23](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.22...v0.6.23) (2022-06-27)
 
 Upgraded Dependencies:
