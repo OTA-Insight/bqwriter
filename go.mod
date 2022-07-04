@@ -1,6 +1,6 @@
 module github.com/OTA-Insight/bqwriter
 
-go 1.15
+go 1.17
 
 require (
 	cloud.google.com/go/bigquery v1.34.1
