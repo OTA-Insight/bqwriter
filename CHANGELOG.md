@@ -1,5 +1,13 @@
 # Changes
 
+## [v0.6.26](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.25...v0.6.26) (2022-07-18)
+
+Upgraded Dependencies:
+
+- `golang.org/x/sys`: v0.0.0-20220712014510-0a85c31ab51e => v0.0.0-20220715151400-c0bba94af5f8
+- `google.golang.org/genproto`: v0.0.0-20220712132514-bdd2acd4974d => v0.0.0-20220715211116-798f69b842b9
+- `google.golang.org/grpc`: v1.47.0 => v1.48.0
+
 ## [v0.6.25](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.24...v0.6.25) (2022-07-12)
 
 Upgraded Dependencies:
