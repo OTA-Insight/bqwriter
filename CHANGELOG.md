@@ -1,6 +1,6 @@
 # Changes
 
-## [v0.6.27](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.26...v0.6.27) (2022-08-01)
+## [v0.6.28](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.27...v0.6.28) (2022-08-01)
 
 Upgraded Dependencies:
 
@@ -9,6 +9,18 @@ Upgraded Dependencies:
 - `google.golang.org/api`: v0.88.0 => v0.90.0
 - `google.golang.org/genproto`: v0.0.0-20220722212130-b98a9ff5e252 => v0.0.0-20220728213248-dd149ef739b9
 - `google.golang.org/protobuf`: v1.28.0 => v1.28.1
+
+## [v0.6.27](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.26...v0.6.27) (2022-07-25)
+
+Upgraded Dependencies:
+
+- `cloud.google.com/go/bigquery`: v1.35.0 => v1.36.0
+- `golang.org/x/net`: v0.0.0-20220708220712-1185a9018129 => v0.0.0-20220722155237-a158d28d115b
+- `golang.org/x/oauth2`: v0.0.0-20220630143837-2104d58473e0 => v0.0.0-20220722155238-128564f6959c
+- `golang.org/x/sync`: v0.0.0-20220601150217-0de741cfad7f => v0.0.0-20220722155255-886fb9371eb4
+- `golang.org/x/sys`: v0.0.0-20220715151400-c0bba94af5f8 => v0.0.0-20220722155257-8c9f86f7a55f
+- `google.golang.org/api`: v0.87.0 => v0.88.0
+- `google.golang.org/genproto`: v0.0.0-20220715211116-798f69b842b9 => v0.0.0-20220722212130-b98a9ff5e252
 
 ## [v0.6.26](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.25...v0.6.26) (2022-07-18)
 
