@@ -51,7 +51,6 @@ linters:
     - gomodguard
     - goprintffuncname
     # - gosec
-    - ifshort
     # - importas
     # - lll
     - makezero
