@@ -203,7 +203,7 @@ func testWorkerfunc(ctx context.Context, logger *Logger, testCh <-chan streamerT
 			if !ok {
 				return
 			}
-			// nolint: govet
+			//nolint: govet
 			testCtx, _ := context.WithTimeout(ctx, time.Second*10)
 			err := test(
 				testCtx,

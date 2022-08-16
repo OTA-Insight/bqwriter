@@ -136,7 +136,7 @@ func (bqc *Client) Flush() (err error) {
 		internalBQ.HttpInternalErrorFilter,
 	)
 	err = retryer.RetryOp(func(ctx context.Context) error {
-		// nolint: wrapcheck
+		//nolint: wrapcheck
 		return bqc.client.Put(ctx, bqc.rows)
 	})
 	if err != nil {

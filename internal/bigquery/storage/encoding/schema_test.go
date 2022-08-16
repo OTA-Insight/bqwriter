@@ -87,7 +87,7 @@ func (sm *simpleMessageJsonMarshaller) MarshalJSON() ([]byte, error) {
 	if sm.optValue != nil {
 		m["value"] = *sm.optValue
 	}
-	// nolint: wrapcheck
+	//nolint: wrapcheck
 	return json.Marshal(m)
 }
 

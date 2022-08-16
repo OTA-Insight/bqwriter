@@ -136,7 +136,7 @@ func (td *tmpData) MarshalJSON() ([]byte, error) {
 	if td.TimestampAsEpoch {
 		timestamp = td.Timestamp.UnixNano() / 1000
 	}
-	// nolint: wrapcheck
+	//nolint: wrapcheck
 	return json.Marshal(map[string]interface{}{
 		"name":       td.Name,
 		"uuid":       td.Uuid,

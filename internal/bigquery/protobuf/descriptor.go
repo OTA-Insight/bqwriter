@@ -26,7 +26,7 @@ func BigQuerySchemaToProtobufDescripor(schema bigquery.Schema) (*descriptorpb.De
 	}
 	messageDescriptor, ok := descriptor.(protoreflect.MessageDescriptor)
 	if !ok {
-		// nolint: goerr113
+		//nolint: goerr113
 		return nil, errors.New("adapted descriptor is not a message descriptor")
 	}
 	protobufDescriptor, err := adapt.NormalizeDescriptor(messageDescriptor)

@@ -147,7 +147,7 @@ func bqSchemaToProtoDesc(schema bigquery.Schema) (protoreflect.MessageDescriptor
 	}
 	messageDescriptor, ok := descriptor.(protoreflect.MessageDescriptor)
 	if !ok {
-		// nolint: goerr113
+		//nolint: goerr113
 		return nil, nil, errors.New("adapted descriptor is not a message descriptor")
 	}
 	return messageDescriptor, protodesc.ToDescriptorProto(messageDescriptor), nil
