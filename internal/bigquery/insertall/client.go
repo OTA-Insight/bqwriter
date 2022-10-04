@@ -61,7 +61,7 @@ func NewClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnkn
 	if tableID == "" {
 		return nil, fmt.Errorf("bq insertAll client creation: validate tableID: %w: missing", internal.ErrInvalidParam)
 	}
-	client, err := newStdBQClient(projectID, dataSetID, tableID, skipInvalidRows, ignoreUnknownValues)
+	client, err := newStdBQClient(projectID, dataSetID, tableID, skipInvalidRows, ignoreUnknownValues, opts...)
 	if err != nil {
 		return nil, err
 	}
