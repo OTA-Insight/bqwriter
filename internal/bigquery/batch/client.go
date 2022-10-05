@@ -23,6 +23,7 @@ import (
 	"github.com/OTA-Insight/bqwriter/log"
 
 	"cloud.google.com/go/bigquery"
+	"google.golang.org/api/option"
 )
 
 var (
@@ -48,12 +49,12 @@ type Client struct {
 }
 
 // NewClient creates a new Client.
-func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, logger log.Logger) (*Client, error) {
+func NewClient(projectID, dataSetID, tableID string, ignoreUnknownValues bool, sourceFormat bigquery.DataFormat, writeDisposition bigquery.TableWriteDisposition, schema *bigquery.Schema, logger log.Logger, opts ...option.ClientOption) (*Client, error) {
 	// NOTE: we are using the background Context,
 	// as to ensure that we can always write to the client,
 	// even when the actual parent context is already done.
 	// This is a requirement given the streamer will batch its rows.
-	client, err := bigquery.NewClient(context.Background(), projectID)
+	client, err := bigquery.NewClient(context.Background(), projectID, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("BQ batch client: creation failed: %w", err)
 	}

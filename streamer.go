@@ -31,6 +31,8 @@ import (
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
 	"github.com/OTA-Insight/bqwriter/log"
+
+	"google.golang.org/api/option"
 )
 
 // Streamer is a simple BQ stream-writer, allowing you
@@ -54,7 +56,7 @@ type streamerJob struct {
 //
 // An error is returned in case the Streamer Client couldn't be created for some unexpected reason,
 // most likely something going wrong within the layer of actually interacting with GCloud.
-func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg *StreamerConfig) (*Streamer, error) {
+func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg *StreamerConfig, opts ...option.ClientOption) (*Streamer, error) {
 	return newStreamerWithClientBuilder(
 		ctx,
 		func(ctx context.Context, projectID, dataSetID, tableID string, logger log.Logger, insertAllCfg *InsertAllClientConfig, storageCfg *StorageClientConfig, batchCfg *BatchClientConfig) (bigquery.Client, error) {
@@ -83,7 +85,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 				client, err := storage.NewClient(
 					projectID, dataSetID, tableID,
 					encoder, protobufDescriptor,
-					logger,
+					logger, opts...,
 				)
 				if err != nil {
 					return nil, fmt.Errorf("BigQuery: NewStreamer: New Storage client: %w", err)
@@ -97,6 +99,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 					!batchCfg.FailForUnknownValues,
 					batchCfg.SourceFormat, batchCfg.WriteDisposition,
 					batchCfg.BigQuerySchema, logger,
+					opts...,
 				)
 
 				if err != nil {
@@ -110,7 +113,7 @@ func NewStreamer(ctx context.Context, projectID, dataSetID, tableID string, cfg 
 				!insertAllCfg.FailOnInvalidRows,
 				!insertAllCfg.FailForUnknownValues,
 				insertAllCfg.BatchSize,
-				logger,
+				logger, opts...,
 			)
 			if err != nil {
 				return nil, fmt.Errorf("BigQuery: NewStreamer: New InsertAll client: %w", err)

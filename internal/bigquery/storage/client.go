@@ -23,9 +23,11 @@ import (
 
 	"github.com/OTA-Insight/bqwriter/internal"
 	"github.com/OTA-Insight/bqwriter/internal/bigquery/storage/encoding"
+
 	"github.com/OTA-Insight/bqwriter/log"
 
 	"cloud.google.com/go/bigquery/storage/managedwriter"
+	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -58,7 +60,7 @@ type Client struct {
 
 // NewClient creates a new BQ Storage Client.
 // See the documentation of Client for more information how to use it.
-func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, dp *descriptorpb.DescriptorProto, logger log.Logger) (*Client, error) {
+func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, dp *descriptorpb.DescriptorProto, logger log.Logger, opts ...option.ClientOption) (*Client, error) {
 	if projectID == "" {
 		return nil, fmt.Errorf("bq storage client creation: validate projectID: %w: missing", internal.ErrInvalidParam)
 	}
@@ -81,7 +83,7 @@ func NewClient(projectID, dataSetID, tableID string, encoder encoding.Encoder, d
 	// This is a requirement given the streamer will batch its rows.
 	ctx := context.Background()
 
-	writer, err := managedwriter.NewClient(ctx, projectID)
+	writer, err := managedwriter.NewClient(ctx, projectID, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("BQ Storage Client creation: create managed writer: %w", err)
 	}

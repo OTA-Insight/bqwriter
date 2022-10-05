@@ -22,6 +22,8 @@ import (
 	"github.com/OTA-Insight/bqwriter/internal"
 	internalBQ "github.com/OTA-Insight/bqwriter/internal/bigquery"
 	"github.com/OTA-Insight/bqwriter/log"
+
+	"google.golang.org/api/option"
 )
 
 // Client implements the standard/official BQ (cloud) Client,
@@ -49,7 +51,7 @@ type bqClient interface {
 }
 
 // NewClient creates a new Client.
-func NewClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool, batchSize int, logger log.Logger) (*Client, error) {
+func NewClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool, batchSize int, logger log.Logger, opts ...option.ClientOption) (*Client, error) {
 	if projectID == "" {
 		return nil, fmt.Errorf("bq insertAll client creation: validate projectID: %w: missing", internal.ErrInvalidParam)
 	}
@@ -59,7 +61,7 @@ func NewClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnkn
 	if tableID == "" {
 		return nil, fmt.Errorf("bq insertAll client creation: validate tableID: %w: missing", internal.ErrInvalidParam)
 	}
-	client, err := newStdBQClient(projectID, dataSetID, tableID, skipInvalidRows, ignoreUnknownValues)
+	client, err := newStdBQClient(projectID, dataSetID, tableID, skipInvalidRows, ignoreUnknownValues, opts...)
 	if err != nil {
 		return nil, err
 	}

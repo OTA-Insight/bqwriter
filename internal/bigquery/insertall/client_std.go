@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/bigquery"
+	"google.golang.org/api/option"
 )
 
 // stdBQClient impements bqClient using the official Golang Gcloud BigQuery API client.
@@ -53,12 +54,12 @@ func (bqc *stdBQClient) Close() error {
 
 // newStdBQClient creates a new Client,
 // a production-ready implementation of bqClient.
-func newStdBQClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool) (*stdBQClient, error) {
+func newStdBQClient(projectID, dataSetID, tableID string, skipInvalidRows, ignoreUnknownValues bool, opts ...option.ClientOption) (*stdBQClient, error) {
 	// NOTE: we are using the background Context,
 	// as to ensure that we can always write to the client,
 	// even when the actual parent context is already done.
 	// This is a requirement given the streamer will batch its rows.
-	client, err := bigquery.NewClient(context.Background(), projectID)
+	client, err := bigquery.NewClient(context.Background(), projectID, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("create BQ Insert All Client: %w", err)
 	}
