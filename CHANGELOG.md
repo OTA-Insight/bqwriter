@@ -25,6 +25,11 @@ Upgraded Dependencies:
 - `google.golang.org/genproto`: v0.0.0-20220815135757-37a418bb8959 => v0.0.0-20220930163606-c98284e70a91
 - `google.golang.org/grpc`: v1.48.0 => v1.50.0
 
+A big thanks to two new contributors:
+
+- Martin Olofsson (@waiq)
+- Andreas Lindfalk (@andreas-dentech)
+
 ## [v0.6.30](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.29...v0.6.30) (2022-08-16)
 
 Upgraded Dependencies:
