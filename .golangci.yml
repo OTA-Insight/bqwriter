@@ -6,16 +6,16 @@ linters:
   disable-all: true
   enable:
     # Enabled by default
-    - deadcode
+    # - deadcode
     # - errcheck
     - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - structcheck
+    # - structcheck
     - typecheck
     - unused
-    - varcheck
+    # - varcheck
 
     # Disabled by default
     - asciicheck

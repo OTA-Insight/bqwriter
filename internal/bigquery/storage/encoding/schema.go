@@ -36,14 +36,14 @@ import (
 // this Encoder requires a lot of recflection as well as some possibly some extra trial-and-error.
 //
 // The following values can be encoded:
-// - []byte, expected to be a Json encoded message from which it will proto-encode
-//   using a json-driven decoder (see the official protobuf protojson package);
-// - JsonMarshaler, which will be Json-encoded to []byte
-//   and follow the same path as previous option from here;
-// - string, expected to be a Text (human-friendly) encoded message from which it will
-//   proto-encode using a text-driven decoder (see the official protobuf prototext package);
-// - Stringer, which will be stringified to string
-//   and follow the same path as previous option here;
+//   - []byte, expected to be a Json encoded message from which it will proto-encode
+//     using a json-driven decoder (see the official protobuf protojson package);
+//   - JsonMarshaler, which will be Json-encoded to []byte
+//     and follow the same path as previous option from here;
+//   - string, expected to be a Text (human-friendly) encoded message from which it will
+//     proto-encode using a text-driven decoder (see the official protobuf prototext package);
+//   - Stringer, which will be stringified to string
+//     and follow the same path as previous option here;
 //
 // Any value of a type different than the ones listed above will be attempted to be encoded
 // using the bigquery.StructSaver in order to be able to via that long road to Json-Encode
