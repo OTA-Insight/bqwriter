@@ -145,6 +145,10 @@ func (bqc *Client) Put(data interface{}) (bool, error) {
 	if err != nil && !errors.Is(err, io.EOF) {
 		return false, fmt.Errorf("BQ Storage Client: Stream: AppendRows: %w", err)
 	}
+	if result == nil {
+		//nolint: goerr113
+		return false, errors.New("BQ Storage Client: Stream: AppendRows: no result returned")
+	}
 	bqc.appendResultCh <- result
 	// we flush every time we write data,
 	// as the default stream commits immediately
