@@ -4,6 +4,7 @@
 
 - add `(*Streamer) WriteWithContext` to allow for a non-blocking experience, in a conditionnal fashion;
 - upgrade direct dependencies;
+- bump min Go version to `1.18` and max version to `1.21`;
 
 ## [v0.7.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.30...v0.7.0) (2022-10-06)
 
