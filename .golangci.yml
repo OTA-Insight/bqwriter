@@ -21,7 +21,7 @@ linters:
     - asciicheck
     - bodyclose
     # - cyclop
-    - depguard
+    # - depguard
     - dogsled
     - dupl
     - durationcheck

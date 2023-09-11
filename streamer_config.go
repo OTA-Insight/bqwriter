@@ -315,7 +315,7 @@ func sanitizeStorageClientConfig(cfg *StorageClientConfig) (sanCfg *StorageClien
 // Defined as a function to keep its logic contained and well tested.
 func sanitizeBatchClientConfig(cfg *BatchClientConfig) (batchCfg *BatchClientConfig, err error) {
 	if cfg == nil {
-		return
+		return cfg, nil
 	}
 
 	// we want to create a new config, as to not mutate an input param (the cfg),
