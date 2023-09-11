@@ -208,6 +208,29 @@ func (s *Streamer) Write(data interface{}) error {
 	return nil
 }
 
+// WriteWithContext is the same as Write but allows you to pass a context
+// that will be used to determine when the write should be aborted.
+func (s *Streamer) WriteWithContext(ctx context.Context, data interface{}) error {
+	if data == nil {
+		return fmt.Errorf("streamer client write: validate data: %w: nil data", internal.ErrInvalidParam)
+	}
+	job := streamerJob{
+		Data: data,
+	}
+	if err := s.workerCtx.Err(); errors.Is(err, context.Canceled) {
+		return fmt.Errorf("write data into BQ streamer: streamer worker context: %w", err)
+	}
+	select {
+	case s.workerCh <- job:
+		s.logger.Debug("inserted write job into bq streamer")
+	case <-s.workerCtx.Done():
+		return fmt.Errorf("write data into BQ streamer: worker is busy: streamer worker context: %w", context.Canceled)
+	case <-ctx.Done():
+		return fmt.Errorf("write data into BQ streamer: worker is busy: write context: %w", context.Canceled)
+	}
+	return nil
+}
+
 // doWork defines the main loop of a Streamer's worker goroutine.
 func (s *Streamer) doWork(client bigquery.Client, maxBatchDelay time.Duration) {
 	defer func() {

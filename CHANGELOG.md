@@ -1,5 +1,10 @@
 # Changes
 
+## [v0.8.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.7.0...v0.8.0) (2023-09-11)
+
+- add `(*Streamer) WriteWithContext` to allow for a non-blocking experience, in a conditionnal fashion;
+- upgrade direct dependencies;
+
 ## [v0.7.0](https://www.github.com/OTA-Insight/bqwriter/compare/v0.6.30...v0.7.0) (2022-10-06)
 
 - allow opt-in [client options](https://pkg.go.dev/google.golang.org/api/option#ClientOption)
